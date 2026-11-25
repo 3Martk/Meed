@@ -1,0 +1,41 @@
+{
+  "name": "Dr. 221 · Group 221 Student Hub",
+  "short_name": "Dr. 221",
+  "description": "Live schedule, study database, Q&A board, daily recaps, and Group 221 student chat.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live Schedule",
+      "url": "/schedule.html",
+      "short_name": "Schedule"
+    },
+    {
+      "name": "Study Database",
+      "url": "/materials.html",
+      "short_name": "Files"
+    },
+    {
+      "name": "Student Q&A",
+      "url": "/qa.html",
+      "short_name": "Q&A"
+    },
+    {
+      "name": "Student Chat",
+      "url": "/chat.html",
+      "short_name": "Chat"
+    }
+  ],
+  "scope": "./"
+}

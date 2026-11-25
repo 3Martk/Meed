@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "program": "Human Medicine - Year 2",
+  "academicYear": 2,
+  "institution": "Medical Institute",
+  "permissions": {"admin": "Can add, edit, and publish materials.", "student": "Read-only access to published materials."},
+  "instructions": "Each subject is a folder. Add uploaded files with the matching subjectId so students can open them inside that subject.",
+  "subjects": [
+    {"id": "anatomy", "name": "Anatomy", "semester": ["semester-1", "semester-2"]},
+    {"id": "biochemistry", "name": "Biochemistry", "semester": ["semester-1", "semester-2"]},
+    {"id": "hygiene", "name": "Hygiene", "semester": ["semester-1", "semester-2"]},
+    {"id": "histology", "name": "Histology, cytology, embryology", "semester": ["semester-1"]},
+    {"id": "deontology", "name": "Deontological aspects of physician activity", "semester": ["semester-1"]},
+    {"id": "microbiology", "name": "Microbiology, virology", "semester": ["semester-1", "semester-2"]},
+    {"id": "physiology", "name": "Normal physiology", "semester": ["semester-1", "semester-2"]},
+    {"id": "psychology", "name": "Psychiatry, medical psychology", "semester": ["semester-1", "semester-2"]},
+    {"id": "russian", "name": "Russian language in professional medical activities", "semester": ["semester-1", "semester-2"]},
+    {"id": "sport", "name": "Elective courses in physical education and sports", "semester": ["semester-1", "semester-2"]},
+    {"id": "immunology", "name": "Immunology", "semester": ["semester-2"]},
+    {"id": "surgery", "name": "General surgery", "semester": ["semester-2"]}
+  ],
+  "materials": []
+}
