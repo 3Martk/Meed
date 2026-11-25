@@ -1382,7 +1382,7 @@ button {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   gap: 18px;
 }
 
@@ -1942,7 +1942,7 @@ button {
 }
 
 .database-layout.readonly-mode {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .subject-folder-grid {
@@ -3032,7 +3032,7 @@ button {
   .dashboard-grid,
   .profile-grid,
   .auth-container {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .course-grid,
   .subject-folder-grid,
@@ -3105,8 +3105,8 @@ button {
   .live-pills-strip {
     display: none;
   }
-  .topbar-profile span {
-    display: none;
+  .topbar-profile-name {
+    display: none !important;
   }
   .page-content {
     width: calc(100% - 24px);
@@ -3161,7 +3161,7 @@ button {
   .font-grid-cards,
   .form-grid,
   .auth-feature-pills {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .day-strip {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3177,14 +3177,14 @@ button {
     justify-self: start;
   }
   .chat-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .chat-rooms {
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
   .settings-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .ai-fab {
     bottom: calc(86px + env(safe-area-inset-bottom, 0px));
@@ -4488,7 +4488,7 @@ html[data-density="compact"] .stat-card { padding: 13px; }
 html[data-density="compact"] .page-content { padding-top: 14px; }
 
 @media (max-width: 820px) {
-  .qa-hero-stats { grid-template-columns: 1fr; }
+  .qa-hero-stats { grid-template-columns: minmax(0, 1fr); }
   .banner-presets-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tg-msg-row { max-width: 92%; }
   .tg-msg-actions { opacity: 0.85; }
@@ -5111,5 +5111,107 @@ html[data-density="compact"] .page-content { padding-top: 14px; }
 
   .material-action .btn-primary {
     flex: 1;
+  }
+}
+
+/* ==========================================================================
+   v23 Zero-Overflow Containment Fix (Laptop + Mobile) & Topbar Avatar Fix
+   ========================================================================== */
+html, body, .app-shell, .main-shell, .page-content, .page-view {
+  max-width: 100%;
+}
+
+.main-shell {
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.panel,
+.ov-live-card,
+.ov-shortcut-btn,
+.schedule-mini,
+.recap-list,
+.material-list,
+.qa-grid,
+.dashboard-grid > *,
+.database-layout > *,
+.profile-grid > * {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.schedule-mini {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.ov-recent-file-row {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.ov-recent-file-row > div:nth-child(2) {
+  min-width: 0 !important;
+  overflow: hidden;
+}
+
+.material-row,
+.schedule-row,
+.recap-item {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.topbar-profile {
+  flex: none;
+  white-space: nowrap;
+}
+
+.topbar-profile .avatar {
+  display: inline-grid !important;
+  flex: none;
+}
+
+.topbar-profile-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 820px) {
+  html, body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+  }
+
+  .topbar-profile {
+    width: 34px;
+    height: 34px;
+    padding: 0 !important;
+    border-radius: 50%;
+    display: inline-grid !important;
+    place-items: center;
+  }
+
+  .topbar-profile .avatar {
+    width: 30px;
+    height: 30px;
+    display: inline-grid !important;
+  }
+
+  .schedule-row {
+    grid-template-columns: 66px 4px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .schedule-row em {
+    display: none;
   }
 }

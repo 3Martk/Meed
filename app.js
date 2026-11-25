@@ -3876,9 +3876,9 @@
                 <button type="button" class="smart-pill install-app-pill" id="installAppBtn" title="Install Dr. 221 as Mobile App">${icon('smartphone')}<span>Install App</span></button>
                 <button type="button" class="lang-toggle-btn" id="langQuickBtn" title="Switch Language / تغيير اللغة">${isAr() ? 'EN' : 'عربي'}</button>
                 <button class="btn btn-icon btn-ghost" id="themeQuickBtn" title="Switch Light / Dark Theme">${icon(isDarkTheme ? 'sun' : 'moon')}</button>
-                <a class="topbar-profile" href="profile.html">
+                <a class="topbar-profile" href="profile.html" title="My Profile">
                   ${avatarMarkup(current)}
-                  <span>${esc(current?.name?.split(' ')[0] || 'User')} ${flairHtml(current, false)}</span>
+                  <span class="topbar-profile-name">${esc(current?.name?.split(' ')[0] || 'User')} ${flairHtml(current, false)}</span>
                 </a>
                 <button class="btn btn-icon btn-ghost" id="topbarLogoutBtn" title="Sign Out">${icon('logout')}</button>
               </div>
@@ -3986,7 +3986,7 @@
         </div>
         <div class="ov-live-actions">
           <a class="btn btn-primary btn-sm" href="schedule.html">${icon('calendar')} Live Schedule</a>
-          <a class="btn btn-secondary btn-sm" href="materials.html">${icon('database')} Database (${mats.length})</a>
+          <a class="btn btn-secondary btn-sm" id="ovHeroDbBtn" href="materials.html">${icon('database')} Database (${mats.length})</a>
         </div>
       </section>
 
@@ -5276,6 +5276,7 @@
     const recentEl = $('#dashboardRecentFiles');
     const allMats = getPublishedMaterials();
     if ($('#ovShortcutFiles')) $('#ovShortcutFiles').textContent = `${allMats.length} files`;
+    if ($('#ovHeroDbBtn')) $('#ovHeroDbBtn').innerHTML = `${icon('database')} ${isAr() ? `قاعدة الملفات (${allMats.length})` : `Database (${allMats.length})`}`;
     if (recentEl) {
       const recent = allMats.slice(0, 5);
       recentEl.innerHTML = recent.length
