@@ -1361,6 +1361,13 @@
     'Done': 'مكتمل',
     'Sign In': 'تسجيل الدخول',
     'Log In': 'تسجيل الدخول',
+    "Today's Classes": 'محاضرات اليوم',
+    'Latest Study Files': 'أحدث الملفات المرفوعة',
+    'Tap any recent cloud file to open immediately': 'اضغط على أي ملف لفتحه مباشرة',
+    'Clear Local': 'مسح المحلي',
+    'Post Recap': 'إضافة ملخص',
+    'Study Files': 'ملفات المذاكرة',
+    'Group Chat': 'محادثة الجروب',
     'Sign Up': 'إنشاء حساب',
     'Create Account': 'إنشاء حساب جديد',
     'Email or Username': 'البريد الإلكتروني أو اسم المستخدم',
@@ -2221,13 +2228,30 @@
 
   function getAllMaterials() {
     const local = getLocalMaterialMeta();
-    const merged = [...remoteMaterials, ...local];
+    const remoteKeys = new Set(remoteMaterials.map((r) => `${(r.subjectId || '').toLowerCase()}::${(r.name || '').trim().toLowerCase()}`));
+    const filteredLocal = local.filter((l) => {
+      if (!l || !l.id) return false;
+      const k = `${(l.subjectId || '').toLowerCase()}::${(l.name || '').trim().toLowerCase()}`;
+      return !remoteKeys.has(k);
+    });
+    const merged = [...remoteMaterials, ...filteredLocal];
     const seen = new Set();
     return merged.filter((item) => {
       if (!item || !item.id || seen.has(item.id)) return false;
       seen.add(item.id);
       return true;
     });
+  }
+
+  async function clearAllLocalMaterialCache() {
+    const local = getLocalMaterialMeta();
+    for (const item of local) {
+      await Dr221DB.deleteBlob(item.id).catch(() => {});
+    }
+    saveLocalMaterialMeta([]);
+    updateLiveMaterialCounters();
+    if ($('#materialLibraryRoot')) renderMaterials();
+    notify(isAr() ? 'تم مسح الملفات المحلية المكررة من هذا الجهاز.' : 'Cleared local-only cached files from this device.');
   }
 
   function getUploadToken() {
@@ -2497,8 +2521,9 @@
   }
 
   async function deleteMaterialItem(id) {
-    if (!isAdmin()) {
-      notify(isAr() ? 'صلاحية قراءة فقط: المشرف فقط يمكنه حذف الملفات.' : 'Read-only access: only Administrator can delete files.');
+    const isLocalOnly = !remoteMaterials.some((m) => m.id === id) && getLocalMaterialMeta().some((m) => m.id === id);
+    if (!isAdmin() && !isLocalOnly) {
+      notify(isAr() ? 'صلاحية قراءة فقط: القائد فقط يمكنه حذف ملفات السحابة.' : 'Read-only access: only Leader can delete cloud files.');
       return false;
     }
     const remoteItem = remoteMaterials.find((m) => m.id === id);
@@ -3822,7 +3847,7 @@
             <div class="topbar-bar">
               <button class="btn btn-icon btn-ghost mobile-menu" id="mobileMenu" aria-label="Menu">${icon('menu')}</button>
               <div class="topbar-title">
-                <span>${esc(site.name)} · ${adminUser ? 'Admin' : 'Student'}</span>
+                <span>${esc(site.name)} · ${adminUser ? 'Leader' : 'Student'}</span>
                 <strong>${pageTitle}</strong>
               </div>
 
@@ -3860,6 +3885,13 @@
             </div>
           </header>
 
+          <a class="mobile-live-strip" href="schedule.html" id="mobileLiveStrip">
+            <div class="mobile-live-strip-left">
+              <span class="live-dot"></span>
+              <span>${esc(live.short)}</span>
+            </div>
+            <span class="mobile-live-strip-week">W${live.week} · ${live.todayDone}/${live.todayTotal}</span>
+          </a>
           <main class="page-content"><div id="broadcastSlot"></div>${content}</main>
         </div>
       </div>
@@ -3935,85 +3967,58 @@
     const now = new Date();
     const weekInfo = ScheduleSync.getWeekDates(0);
     const live = ScheduleSync.getLiveStatus();
-    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' });
     const mats = getPublishedMaterials();
+    const qaCount = getQA().length;
     const adminUser = isAdmin();
 
     return `<section class="page-view">
-      ${headingHtml(
-        `${dateStr} · Academic Week ${weekInfo.academicWeek}`,
-        `Welcome back, ${esc(current?.name?.split(' ')[0] || 'Student')}`,
-        adminUser
-          ? 'Administrator mode active — you have full editing, file publishing, and chat oversight controls.'
-          : 'Your live timetable, study database, and 12 medical courses are synchronized and ready.',
-        `<a class="btn btn-secondary" href="schedule.html">${icon('calendar')} Full Schedule</a>
-         ${adminUser ? `<a class="btn btn-primary" href="materials.html">${icon('upload')} Upload Materials</a>` : `<a class="btn btn-primary" href="materials.html">${icon('database')} Study Library</a>`}`
-      )}
-
-      <section class="hero-card">
-        <div class="hero-content">
-          <span class="eyebrow">Live Sync · ${esc(live.label)}</span>
-          <h2>Focused Medical Study.<br><em>Clear & Organized.</em></h2>
-          <p>${esc(live.detail || 'Your classes automatically advance every Monday between Week 1 and Week 2, and all Anatomy & Histology materials are organized by subject.')}</p>
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="materials.html">${icon('database')} Study Database (${mats.length})</a>
-            <button class="btn btn-secondary" type="button" id="heroOpenAiBtn">${icon('spark')} Ask Dr. 221 AI</button>
+      <!-- 1. Live Now / Next Class Smart Card -->
+      <section class="ov-live-card">
+        <div style="min-width:0">
+          <div class="ov-live-meta">
+            <span class="pill ${live.state === 'live' ? 'success' : 'blue'}"><span class="live-dot" style="width:7px;height:7px;margin-right:4px"></span>${esc(live.label)}</span>
+            <span class="pill">Week ${weekInfo.academicWeek}</span>
+            <span class="muted" style="font-size:.7rem;font-weight:600">${esc(dateStr)}</span>
           </div>
+          <h2 class="ov-live-title">${esc(live.short)}</h2>
+          <p class="ov-live-sub">${esc(live.detail || `Academic Week ${weekInfo.academicWeek} · ${weekInfo.rangeLabel}`)}</p>
         </div>
-        <div class="hero-status-card">
-          <span>Academic Week ${weekInfo.academicWeek}</span>
-          <strong>${now.getDate()} ${now.toLocaleDateString('en-US', { month: 'short' })}</strong>
-          <small>${ScheduleSync.todayName()} · ${weekInfo.rangeLabel}</small>
+        <div class="ov-live-actions">
+          <a class="btn btn-primary btn-sm" href="schedule.html">${icon('calendar')} Live Schedule</a>
+          <a class="btn btn-secondary btn-sm" href="materials.html">${icon('database')} Database (${mats.length})</a>
         </div>
       </section>
 
-      <div class="grid grid-4" id="dashboardStats">
-        <div class="stat-card">
-          <div class="stat-top"><span>Active Week</span><span class="stat-icon">${icon('calendar')}</span></div>
-          <strong>Week ${weekInfo.academicWeek}</strong>
-          <small><b>Auto-synced</b> · ${weekInfo.rangeLabel}</small>
-        </div>
-        <div class="stat-card">
-          <div class="stat-top"><span>Database Files</span><span class="stat-icon">${icon('database')}</span></div>
-          <strong>${mats.length}</strong>
-          <small><b>${adminUser ? 'Admin Write' : 'Student Read-Only'}</b></small>
-        </div>
-        <div class="stat-card">
-          <div class="stat-top"><span>Core Subjects</span><span class="stat-icon">${icon('book')}</span></div>
-          <strong>12</strong>
-          <small><b>Year 2</b> Human Medicine</small>
-        </div>
-        <div class="stat-card">
-          <div class="stat-top"><span>Account Role</span><span class="stat-icon">${icon('shield')}</span></div>
-          <strong>${adminUser ? 'Leader' : 'Student'}</strong>
-          <small><b>${esc(current?.group || 'Group 221 A')}</b></small>
-        </div>
+      <!-- 2. Essential 1-Tap Shortcuts -->
+      <div class="ov-quick-shortcuts">
+        <a class="ov-shortcut-btn" href="schedule.html">
+          <span class="ov-shortcut-icon">${icon('calendar')}</span>
+          <div><strong>Schedule</strong><small>Week ${weekInfo.academicWeek} · ${live.todayDone}/${live.todayTotal} done</small></div>
+        </a>
+        <a class="ov-shortcut-btn" href="materials.html">
+          <span class="ov-shortcut-icon">${icon('database')}</span>
+          <div><strong>Study Files</strong><small id="ovShortcutFiles">${mats.length} files</small></div>
+        </a>
+        <a class="ov-shortcut-btn" href="chat.html">
+          <span class="ov-shortcut-icon">${icon('message')}</span>
+          <div><strong>Group Chat</strong><small>Public A &amp; B</small></div>
+        </a>
+        <a class="ov-shortcut-btn" href="qa.html">
+          <span class="ov-shortcut-icon">${icon('help')}</span>
+          <div><strong>Student Q&amp;A</strong><small>${qaCount} questions</small></div>
+        </a>
       </div>
 
-      <!-- What We Covered Today (Daily Recap) -->
-      <section class="panel" style="margin-top:18px">
-        <div class="panel-head">
-          <div>
-            <span class="eyebrow">Daily Student Recap</span>
-            <h2>What We Covered Today</h2>
-            <p>Quick summary of lectures, practical lab prep, and upcoming quizzes for Group 221 A & B.</p>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <a class="btn btn-secondary btn-sm" href="qa.html">${icon('help')} Ask Classmates (Q&amp;A)</a>
-            ${adminUser ? `<button type="button" class="btn btn-primary btn-sm" id="openRecapModalBtn">${icon('plus')} Post Daily Recap</button>` : ''}
-          </div>
-        </div>
-        <div class="recap-list" id="dashboardRecapList"></div>
-      </section>
-
-      <div class="dashboard-grid" style="margin-top:18px">
+      <!-- 3. Today's Classes + Latest Cloud Study Files -->
+      <div class="dashboard-grid">
         <section class="panel">
           <div class="panel-head">
             <div>
-              <h2>Today & Upcoming Classes</h2>
-              <p>Automatically synced to ${dateStr} (Week ${weekInfo.academicWeek})</p>
+              <h2>Today's Classes</h2>
+              <p>${esc(ScheduleSync.todayName())} · Academic Week ${weekInfo.academicWeek}</p>
             </div>
-            <a class="panel-link" href="schedule.html">Full timetable ${icon('arrow')}</a>
+            <a class="panel-link" href="schedule.html">Full week ${icon('arrow')}</a>
           </div>
           <div class="schedule-mini" id="dashboardScheduleList"></div>
         </section>
@@ -4021,20 +4026,32 @@
         <section class="panel">
           <div class="panel-head">
             <div>
-              <h2>Quick Subject Folders</h2>
-              <p>Jump straight into your course materials</p>
+              <h2>Latest Study Files</h2>
+              <p>Tap any recent cloud file to open immediately</p>
             </div>
-            <a class="panel-link" href="materials.html">All 12 folders ${icon('arrow')}</a>
+            <a class="panel-link" href="materials.html">${adminUser ? 'Upload / Manage' : 'All files'} ${icon('arrow')}</a>
           </div>
-          <div class="grid" style="gap:9px" id="dashboardQuickFolders"></div>
+          <div class="schedule-mini" id="dashboardRecentFiles"></div>
         </section>
       </div>
 
-      <!-- Post Daily Recap Modal (Admin) -->
+      <!-- 4. Today's Recap & Announcements -->
+      <section class="panel" style="margin-top:16px">
+        <div class="panel-head">
+          <div>
+            <h2>What We Covered Today</h2>
+            <p>Lectures, lab prep, and exam reminders for Group 221 A &amp; B</p>
+          </div>
+          ${adminUser ? `<button type="button" class="btn btn-primary btn-sm" id="openRecapModalBtn">${icon('plus')} Post Recap</button>` : ''}
+        </div>
+        <div class="recap-list" id="dashboardRecapList"></div>
+      </section>
+
+      ${adminUser ? `
       <div class="modal-backdrop" id="recapModal">
         <div class="modal-box">
           <div class="modal-head">
-            <div><span class="eyebrow">Daily Recap</span><h2>Post Today's Study Summary</h2><p>Visible immediately to all Group 221 students.</p></div>
+            <div><span class="eyebrow">Daily Student Recap</span><h2>Post Today's Summary</h2><p>Share what was covered in today's lectures or labs.</p></div>
             <button class="btn btn-icon btn-ghost" data-close-modal="recapModal">${icon('close')}</button>
           </div>
           <form id="recapForm" class="form-grid" style="margin-top:14px">
@@ -4043,32 +4060,29 @@
               <select class="select" id="recapSubject">${getCourses().map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
             </div>
             <div class="form-field">
-              <label>Group</label>
+              <label>Target Group</label>
               <select class="select" id="recapGroup">
-                <option value="All Group 221">All Group 221</option>
+                <option value="Group 221 A & B">Group 221 A &amp; B</option>
                 <option value="Group 221 A">Group 221 A</option>
                 <option value="Group 221 B">Group 221 B</option>
               </select>
             </div>
             <div class="form-field full">
-              <label>What Was Covered Today?</label>
-              <textarea class="textarea" id="recapCovered" required placeholder="e.g. Finished thorax vasculature, covered chapters 4 & 5..."></textarea>
+              <label>What was covered today?</label>
+              <textarea class="textarea" id="recapSummary" required placeholder="e.g. Finished cranial nerves VII–XII, quiz next Tuesday..."></textarea>
             </div>
-            <div class="form-field">
-              <label>Next Lab / Homework Prep (Optional)</label>
-              <input class="input" id="recapPrep" placeholder="e.g. Bring lab manual & review slides">
+            <div class="form-field full">
+              <label>Next Deadline / Reminder (Optional)</label>
+              <input class="input" id="recapDeadline" placeholder="e.g. Lab notebook due Friday">
             </div>
-            <div class="form-field">
-              <label>Quiz / Exam Alert (Optional)</label>
-              <input class="input" id="recapQuiz" placeholder="e.g. Colloquium next Thursday">
-            </div>
-            <div class="modal-actions full" style="margin-top:6px">
+            <div class="modal-actions full">
               <button type="button" class="btn btn-secondary" data-close-modal="recapModal">Cancel</button>
               <button type="submit" class="btn btn-primary">${icon('check')} Publish Recap</button>
             </div>
           </form>
         </div>
       </div>
+      ` : ''}
     </section>`;
   }
 
@@ -4267,6 +4281,7 @@
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button type="button" class="btn btn-secondary btn-sm" id="matTestCloudBtn" style="flex:1">${icon('refresh')} Test Cloud</button>
             <button type="button" class="btn btn-secondary btn-sm" id="matPushLocalBtn" style="flex:1">${icon('upload')} Push Local</button>
+            <button type="button" class="btn btn-danger btn-sm" id="matClearLocalBtn" style="flex:1">${icon('close')} Clear Local</button>
           </div>
         </section>
         ` : `
@@ -5258,25 +5273,30 @@
         `).join('')
       : `<div class="empty">No classes scheduled for ${today}. Enjoy your study block!</div>`;
 
-    const foldersEl = $('#dashboardQuickFolders');
-    if (foldersEl) {
-      const allMats = getPublishedMaterials();
-    const qaCount = getQA().length;
-    const pendingCount = getPendingMaterials().length + getFileRequests().filter((r) => r.status === 'open').length;
-      const courses = getCourses().slice(0, 5);
-      foldersEl.innerHTML = courses.map((c) => {
-        const count = allMats.filter((m) => m.subjectId === c.id).length;
-        return `
-          <a class="schedule-row" href="materials.html?subject=${c.id}" style="grid-template-columns:42px minmax(0,1fr) auto">
-            <img src="${esc(c.image)}" onerror="this.onerror=null;this.src='${esc(c.fallback)}'" alt="${esc(c.name)}" style="width:42px;height:42px;border-radius:11px;object-fit:cover">
-            <div>
-              <strong>${esc(c.name)}</strong>
-              <span>${esc(c.semester)}</span>
-            </div>
-            <span class="pill blue">${count} files</span>
-          </a>
-        `;
-      }).join('');
+    const recentEl = $('#dashboardRecentFiles');
+    const allMats = getPublishedMaterials();
+    if ($('#ovShortcutFiles')) $('#ovShortcutFiles').textContent = `${allMats.length} files`;
+    if (recentEl) {
+      const recent = allMats.slice(0, 5);
+      recentEl.innerHTML = recent.length
+        ? recent.map((m) => {
+            const isImg = isImageMaterial(m);
+            return `
+              <div class="ov-recent-file-row" data-ov-open="${esc(m.id)}">
+                <div class="ov-recent-thumb">
+                  ${isImg && m.url ? `<img src="${esc(m.url)}" alt="">` : icon('file')}
+                </div>
+                <div style="min-width:0;flex:1">
+                  <strong style="display:block;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.name)}</strong>
+                  <span style="display:block;font-size:.66rem;color:var(--muted)">${esc(m.subject)} · ${esc(m.type)} · ${esc(m.size)}</span>
+                </div>
+                <span class="pill ${m.storageMode === 'supabase' ? 'success' : 'amber'}" style="font-size:.6rem">${m.storageMode === 'supabase' ? '☁' : 'Local'}</span>
+              </div>
+            `;
+          }).join('')
+        : `<div class="empty">No files uploaded yet.</div>`;
+
+      $$('[data-ov-open]', recentEl).forEach((row) => row.addEventListener('click', () => openMaterialPreview(row.dataset.ovOpen)));
     }
     renderDailyRecaps();
 
@@ -5716,6 +5736,7 @@
             <div class="material-thumb" data-mat-preview="${esc(m.id)}">
               ${thumbInner}
               <span class="thumb-cat-pill">${esc(m.category || 'Lecture')}</span>
+              ${(adminUser || m.storageMode === 'local') ? `<button type="button" class="thumb-delete-fab" data-mat-delete="${esc(m.id)}" title="Delete">${icon('close')}</button>` : ''}
             </div>
             <div class="material-card-body">
               <strong title="${esc(m.name)}">${esc(m.name)}</strong>
@@ -5726,10 +5747,8 @@
               <div class="material-card-actions">
                 <button type="button" class="btn btn-primary btn-sm" data-mat-preview="${esc(m.id)}">${icon('eye')} Open</button>
                 <button type="button" class="btn btn-secondary btn-sm" data-mat-share="${esc(m.id)}" title="Copy Link">${icon('share')}</button>
-                ${adminUser ? `
-                  <button type="button" class="btn btn-secondary btn-sm" data-mat-rename="${esc(m.id)}" title="Rename">${icon('edit')}</button>
-                  <button type="button" class="btn btn-danger btn-sm" data-mat-delete="${esc(m.id)}" title="Delete">${icon('close')}</button>
-                ` : ''}
+                ${adminUser ? `<button type="button" class="btn btn-secondary btn-sm" data-mat-rename="${esc(m.id)}" title="Rename">${icon('edit')}</button>` : ''}
+                ${(adminUser || m.storageMode === 'local') ? `<button type="button" class="btn btn-danger btn-sm" data-mat-delete="${esc(m.id)}" title="Delete">${icon('close')}</button>` : ''}
               </div>
             </div>
           </article>
@@ -5752,10 +5771,8 @@
             <div class="material-action">
               <button type="button" class="btn btn-primary btn-sm" data-mat-preview="${esc(m.id)}">${icon('eye')} Open</button>
               <button type="button" class="btn btn-secondary btn-sm" data-mat-share="${esc(m.id)}" title="Copy Direct Share Link">${icon('share')}</button>
-              ${adminUser ? `
-                <button type="button" class="btn btn-secondary btn-sm" data-mat-rename="${esc(m.id)}" title="Rename">${icon('edit')}</button>
-                <button type="button" class="btn btn-danger btn-sm" data-mat-delete="${esc(m.id)}" title="Delete">${icon('close')}</button>
-              ` : ''}
+              ${adminUser ? `<button type="button" class="btn btn-secondary btn-sm" data-mat-rename="${esc(m.id)}" title="Rename">${icon('edit')}</button>` : ''}
+              ${(adminUser || m.storageMode === 'local') ? `<button type="button" class="btn btn-danger btn-sm" data-mat-delete="${esc(m.id)}" title="Delete">${icon('close')}</button>` : ''}
             </div>
           </div>
         `;
@@ -5778,11 +5795,15 @@
           renderMaterials();
         }
       }));
-      $$('[data-mat-delete]', listEl).forEach((b) => b.addEventListener('click', async () => {
-        await deleteMaterialItem(b.dataset.matDelete);
-        renderMaterials();
-      }));
     }
+    $$('[data-mat-delete]', listEl).forEach((b) => b.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = b.dataset.matDelete;
+      if (!confirm(isAr() ? 'هل تريد حذف هذا الملف نهائياً؟' : 'Delete this file permanently?')) return;
+      await deleteMaterialItem(id);
+      renderMaterials();
+    }));
   }
 
   function bindMaterials() {
@@ -5814,6 +5835,10 @@
     $('#matPushLocalBtn')?.addEventListener('click', async () => {
       setUploadDiag('Pushing local-only files to Supabase Cloud...', 'info');
       await syncLocalMaterialsToCloud();
+    });
+    $('#matClearLocalBtn')?.addEventListener('click', async () => {
+      if (!confirm(isAr() ? 'مسح الملفات المحفوظة محلياً على هذا الجهاز فقط؟ (ملفات السحابة لن تتأثر)' : 'Clear local-only cached files on this device? (Cloud files will NOT be affected)')) return;
+      await clearAllLocalMaterialCache();
     });
     $$('[data-mat-view]').forEach((btn) => btn.addEventListener('click', () => {
       matViewMode = btn.dataset.matView;

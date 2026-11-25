@@ -4638,3 +4638,478 @@ html[data-density="compact"] .page-content { padding-top: 14px; }
   justify-content: center;
   margin-top: 12px;
 }
+
+/* ==========================================================================
+   v22 Mobile-First 120Hz Polish, Clean Overview & Aligned Schedule / Files
+   ========================================================================== */
+.mobile-live-strip {
+  display: none;
+}
+
+/* Streamlined High-Utility Overview */
+.ov-live-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 24px;
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft), var(--glass-rim);
+  margin-bottom: 16px;
+}
+
+.ov-live-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.ov-live-title {
+  margin: 0 0 4px;
+  font-size: clamp(1.18rem, 2.2vw, 1.55rem);
+  letter-spacing: -0.03em;
+  line-height: 1.22;
+}
+
+.ov-live-sub {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.ov-live-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: none;
+}
+
+.ov-quick-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ov-shortcut-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--glass-rim);
+  color: var(--ink);
+  transition: transform 0.2s var(--spring), border-color 0.2s;
+}
+
+.ov-shortcut-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.ov-shortcut-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.ov-shortcut-btn strong {
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.ov-shortcut-btn small {
+  display: block;
+  font-size: 0.64rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.ov-recent-file-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  border-radius: 15px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.ov-recent-file-row:hover {
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+
+.ov-recent-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  overflow: hidden;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.ov-recent-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Always-Visible Card Delete Button & Non-Clipping File Actions */
+.thumb-delete-fab {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  z-index: 5;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 69, 58, 0.55);
+  background: rgba(20, 10, 12, 0.78);
+  color: #ff6961;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.18s, background 0.18s;
+}
+
+.thumb-delete-fab:hover {
+  background: #dc2626;
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+.material-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Touch devices: eliminate sticky hover jank */
+@media (hover: none) {
+  .stat-card:hover,
+  .course-card:hover,
+  .material-file-card:hover,
+  .schedule-card:hover,
+  .day-tab:hover,
+  .ov-shortcut-btn:hover {
+    transform: none !important;
+  }
+}
+
+/* ==========================================================================
+   MOBILE-FIRST FIXES (<= 820px) — 120Hz GPU, Clean Topbar, Aligned Schedule
+   ========================================================================== */
+@media (max-width: 820px) {
+  /* 1. True 120Hz Smooth Scroll: disable blur on scrolling cards, keep live glass on fixed floating topbar & dock */
+  .panel,
+  .hero-card,
+  .stat-card,
+  .course-card,
+  .seminar-card,
+  .profile-stat,
+  .broadcast-banner,
+  .qa-card,
+  .qa-thread-card,
+  .qa-mini-stat,
+  .ov-live-card,
+  .ov-shortcut-btn,
+  .material-file-card,
+  .schedule-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    contain: layout style;
+  }
+
+  [data-theme="oled-black"] .panel,
+  [data-theme="oled-black"] .ov-live-card,
+  [data-theme="oled-black"] .ov-shortcut-btn,
+  [data-theme="oled-black"] .qa-thread-card,
+  [data-theme="oled-black"] .qa-mini-stat {
+    background: rgba(18, 20, 27, 0.94);
+    border-color: rgba(255, 255, 255, 0.085);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.11);
+  }
+
+  [data-theme="frosted-light"] .panel,
+  [data-theme="frosted-light"] .ov-live-card,
+  [data-theme="frosted-light"] .ov-shortcut-btn,
+  [data-theme="frosted-light"] .qa-thread-card,
+  [data-theme="frosted-light"] .qa-mini-stat {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(15, 23, 42, 0.10);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  }
+
+  [data-theme="oled-black"] .ambient-backdrop {
+    background: linear-gradient(180deg, #060a14 0%, #000000 32%, #000000 100%) !important;
+  }
+
+  .topbar-bar {
+    backdrop-filter: blur(14px) saturate(165%) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(165%) !important;
+    gap: 8px;
+    padding: 6px 10px;
+  }
+
+  .mobile-dock {
+    backdrop-filter: blur(16px) saturate(175%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(175%) !important;
+  }
+
+  /* 2. Clean Mobile Topbar: symmetrical avatar circle & remove extra logout icon from topbar (kept in sidebar) */
+  .topbar-title {
+    padding-left: 2px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .topbar-title strong {
+    display: block;
+    font-size: 0.86rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+  }
+
+  .topbar-profile {
+    width: 34px;
+    height: 34px;
+    padding: 0 !important;
+    justify-content: center;
+    border-radius: 50%;
+    flex: none;
+  }
+
+  .topbar-profile .avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 0.66rem;
+  }
+
+  #topbarLogoutBtn {
+    display: none !important;
+  }
+
+  /* 3. Dedicated Mobile Live Schedule Strip directly under Topbar */
+  .mobile-live-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: calc(100% - 24px);
+    margin: 4px auto 8px;
+    padding: 9px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface-2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    color: var(--ink);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .mobile-live-strip-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .mobile-live-strip-left span:last-child {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-live-strip-week {
+    flex: none;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    font-size: 0.64rem;
+    font-weight: 800;
+  }
+
+  /* 4. Fix Live Schedule Alignment on Mobile (zero tilted/wrapped pills or arrows) */
+  .panel-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .week-nav-bar {
+    width: 100%;
+    flex-wrap: nowrap !important;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .week-nav-bar .btn-icon {
+    width: 36px;
+    height: 36px;
+    flex: none;
+  }
+
+  .week-tabs {
+    flex: 1;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    flex-wrap: nowrap !important;
+    padding: 4px;
+    gap: 2px;
+    border-radius: 999px;
+  }
+
+  .week-tab {
+    padding: 8px 4px !important;
+    font-size: 0.67rem !important;
+    text-align: center;
+    transform: none !important;
+  }
+
+  .week-tab.active {
+    transform: none !important;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 8px;
+  }
+
+  .glide-chip-group {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    flex-wrap: nowrap !important;
+    padding: 4px;
+    gap: 2px;
+  }
+
+  .filter-chip {
+    padding: 8px 4px !important;
+    font-size: 0.68rem !important;
+    text-align: center;
+    transform: none !important;
+  }
+
+  .filter-chip.active {
+    transform: none !important;
+  }
+
+  .heading-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .heading-actions .btn-sm {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .day-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .day-tab {
+    min-height: 78px;
+    padding: 9px 6px;
+  }
+
+  /* 5. Fix Overview Mobile Layout */
+  .ov-live-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .ov-live-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ov-live-actions .btn {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .ov-quick-shortcuts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  /* 6. Fix Study Database File Cards on Mobile so Delete button is ALWAYS visible */
+  .material-grid-view {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .material-card-body {
+    padding: 10px;
+  }
+
+  .material-card-actions {
+    gap: 5px;
+  }
+
+  .material-card-actions .btn-primary {
+    flex: 1 1 100%;
+    min-height: 32px;
+    justify-content: center;
+  }
+
+  .material-card-actions .btn-secondary,
+  .material-card-actions .btn-danger {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 32px;
+    padding: 0 6px;
+    justify-content: center;
+  }
+
+  .material-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .material-action {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .material-action .btn-primary {
+    flex: 1;
+  }
+}
