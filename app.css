@@ -223,9 +223,9 @@ html {
 
 body {
   margin: 0;
-  min-width: 320px;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-family);
@@ -234,7 +234,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  overscroll-behavior-y: none;
 }
 
 /* Clean Ambient Backdrop (Zero Distracting Background Bubbles) */
@@ -4838,7 +4837,6 @@ html[data-density="compact"] .page-content { padding-top: 14px; }
   .schedule-card {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    contain: layout style;
   }
 
   [data-theme="oled-black"] .panel,
@@ -5185,9 +5183,20 @@ html, body, .app-shell, .main-shell, .page-content, .page-view {
 }
 
 @media (max-width: 820px) {
-  html, body {
-    overflow-x: hidden !important;
-    width: 100% !important;
+  html {
+    overflow-x: clip;
+    overflow-y: auto;
+  }
+
+  body {
+    overflow-x: clip;
+    overflow-y: visible;
+    width: 100%;
+    touch-action: pan-y;
+  }
+
+  .app-shell {
+    overflow-x: clip;
   }
 
   .topbar-profile {
