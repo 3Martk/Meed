@@ -174,11 +174,12 @@ button:focus-visible, a:focus-visible {
   outline-offset: 2px;
 }
 
-/* Telegram-Style Circular Expanding Theme Reveal (View Transitions API) */
+/* Zero-Lag GPU Theme Reveal (Circle / Ocean Wave / Side Sweep via View Transitions API) */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+  contain: layout style paint;
 }
 
 ::view-transition-old(root) {
@@ -187,6 +188,18 @@ button:focus-visible, a:focus-visible {
 
 ::view-transition-new(root) {
   z-index: 9999;
+  will-change: clip-path;
+}
+
+/* Pause competing CSS transitions during the 420ms GPU snapshot so Android Chrome stays 60/120fps */
+html.vt-active *,
+html.vt-active *::before,
+html.vt-active *::after {
+  transition: none !important;
+}
+
+html.vt-active #themeQuickBtn .icon {
+  animation: none !important;
 }
 
 /* Fallback Circular Reveal Wave (for browsers without View Transitions API) */
@@ -5524,4 +5537,48 @@ html.theme-switching .sidebar {
   .sidebar-nav {
     overscroll-behavior: contain;
   }
+}
+
+/* ==========================================================================
+   v28 Theme Switch Animation Picker & GPU Fallback Wave Styles
+   ========================================================================== */
+.theme-anim-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  position: relative;
+  max-width: 100%;
+  flex-wrap: nowrap;
+}
+
+.theme-anim-btn {
+  position: relative;
+  z-index: 2;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.18s ease;
+}
+
+.theme-anim-btn.active {
+  color: var(--ink);
+}
+
+.theme-sweep-wave {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease;
 }

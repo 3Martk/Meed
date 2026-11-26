@@ -972,6 +972,7 @@
       density: 'comfortable',
       soundEffects: true,
       motion: true,
+      themeAnim: 'circle',
       wallpaper: '',
       weekParityFlip: false,
       groupFilter: 'all',
@@ -1075,7 +1076,7 @@
     'emerald': '#081814'
   };
 
-  function switchThemeWithRipple(nextThemeId, triggerEvent = null, onApplied = null) {
+  function switchThemeWithRipple(nextThemeId, triggerEvent = null, onApplied = null, overrideStyle = null) {
     const tObj = themeCatalog.find((t) => t.id === nextThemeId) || themeCatalog[0];
     let x = window.innerWidth - 72;
     let y = 34;
@@ -1091,62 +1092,138 @@
       }
     }
 
+    const vw = window.innerWidth || 400;
+    const vh = window.innerHeight || 800;
     const endRadius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y)
+      Math.max(x, vw - x),
+      Math.max(y, vh - y)
     );
 
-    const applyNow = () => {
+    const spinThemeIcon = () => {
+      const btn = $('#themeQuickBtn');
+      if (!btn) return;
+      btn.classList.remove('theme-spin');
+      void btn.offsetWidth;
+      btn.classList.add('theme-spin');
+    };
+
+    const applyNow = (withSpin = true) => {
       updatePreferences({ theme: tObj.id });
       const metaTheme = $('meta[name="theme-color"]');
       if (metaTheme) metaTheme.setAttribute('content', themeBgColors[tObj.id] || '#000000');
       if ($('#themeQuickBtn')) {
         $('#themeQuickBtn').innerHTML = icon(tObj.dark ? 'sun' : 'moon');
-        $('#themeQuickBtn').classList.remove('theme-spin');
-        void $('#themeQuickBtn').offsetWidth;
-        $('#themeQuickBtn').classList.add('theme-spin');
+        if (withSpin) spinThemeIcon();
       }
       if (typeof onApplied === 'function') onApplied(tObj);
     };
 
-    const motionOff = getPrefs().motion === false || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    const isMobileViewport = window.innerWidth <= 820 || window.matchMedia?.('(pointer: coarse)')?.matches;
-    if (motionOff || isMobileViewport) {
-      document.documentElement.classList.add('theme-switching');
-      applyNow();
-      clearTimeout(window.__themeSwitchTimer);
-      window.__themeSwitchTimer = setTimeout(() => {
-        document.documentElement.classList.remove('theme-switching');
-      }, 240);
+    const prefs = getPrefs();
+    const animStyle = overrideStyle || prefs.themeAnim || 'circle';
+    const motionOff = prefs.motion === false || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+    // Prevent stacked concurrent transitions (main cause of mobile ViewTransition freezes)
+    if (motionOff || window.__vtBusy) {
+      applyNow(true);
       return;
     }
 
-    // Desktop-only fast View Transition (skipped on mobile to prevent Chrome GPU freeze!)
+    // Zero-Lag GPU View Transitions API (works smoothly on both Mobile & Desktop!)
     if (typeof document.startViewTransition === 'function') {
       try {
+        window.__vtBusy = true;
+        document.documentElement.classList.add('vt-active');
+
+        const cleanup = () => {
+          window.__vtBusy = false;
+          document.documentElement.classList.remove('vt-active');
+          clearTimeout(window.__vtSafetyTimer);
+        };
+        clearTimeout(window.__vtSafetyTimer);
+        window.__vtSafetyTimer = setTimeout(cleanup, 750);
+
         const vt = document.startViewTransition(() => {
-          applyNow();
+          applyNow(false);
         });
+
+        let keyframes;
+        let duration = 420;
+        let easing = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+        if (animStyle === 'wave') {
+          // Curved liquid ocean wave rolling smoothly from top of screen to bottom
+          keyframes = {
+            clipPath: [
+              'ellipse(115% 0% at 50% 0%)',
+              'ellipse(155% 138% at 50% 0%)'
+            ]
+          };
+          duration = 460;
+        } else if (animStyle === 'side') {
+          // Curved wave sweeping smoothly from the right edge across the screen
+          keyframes = {
+            clipPath: [
+              'ellipse(0% 115% at 100% 50%)',
+              'ellipse(145% 155% at 100% 50%)'
+            ]
+          };
+          duration = 430;
+        } else {
+          // Classic Telegram-style big expanding circle right from the tapped button
+          keyframes = {
+            clipPath: [
+              `circle(0px at ${x}px ${y}px)`,
+              `circle(${Math.ceil(endRadius)}px at ${x}px ${y}px)`
+            ]
+          };
+          duration = 420;
+        }
+
         vt.ready.then(() => {
-          document.documentElement.animate(
-            {
-              clipPath: [
-                `circle(0px at ${x}px ${y}px)`,
-                `circle(${endRadius}px at ${x}px ${y}px)`
-              ]
-            },
-            {
-              duration: 340,
-              easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-              pseudoElement: '::view-transition-new(root)'
-            }
-          );
-        }).catch(() => {});
+          document.documentElement.animate(keyframes, {
+            duration,
+            easing,
+            pseudoElement: '::view-transition-new(root)'
+          });
+        }).catch(() => {
+          cleanup();
+        });
+
+        vt.finished.finally(() => {
+          cleanup();
+          spinThemeIcon();
+        });
         return;
-      } catch (_) {}
+      } catch (_) {
+        window.__vtBusy = false;
+        document.documentElement.classList.remove('vt-active');
+      }
     }
 
-    // Smooth GPU Circular Wave Fallback (for browsers without View Transitions API)
+    // GPU Fallback for older browsers without View Transitions API
+    const bg = themeBgColors[tObj.id] || '#000000';
+    if (animStyle === 'wave' || animStyle === 'side') {
+      const sweep = document.createElement('div');
+      sweep.className = 'theme-sweep-wave';
+      sweep.style.background = bg;
+      if (animStyle === 'wave') {
+        sweep.style.borderRadius = '0 0 42% 42% / 0 0 10% 10%';
+        sweep.style.transform = 'translate3d(0, -105%, 0)';
+      } else {
+        sweep.style.borderRadius = '42% 0 0 42% / 10% 0 0 10%';
+        sweep.style.transform = 'translate3d(105%, 0, 0)';
+      }
+      document.body.appendChild(sweep);
+      void sweep.offsetWidth;
+      sweep.style.transform = 'translate3d(0, 0, 0)';
+      setTimeout(() => {
+        applyNow(true);
+        sweep.style.opacity = '0';
+        setTimeout(() => sweep.remove(), 240);
+      }, 320);
+      return;
+    }
+
     const wave = document.createElement('div');
     wave.className = 'theme-ripple-wave';
     const dia = endRadius * 2.1;
@@ -1154,15 +1231,15 @@
     wave.style.height = `${dia}px`;
     wave.style.left = `${x}px`;
     wave.style.top = `${y}px`;
-    wave.style.background = themeBgColors[tObj.id] || '#000000';
+    wave.style.background = bg;
     document.body.appendChild(wave);
     void wave.offsetWidth;
     wave.style.transform = 'translate(-50%, -50%) scale(1)';
     setTimeout(() => {
-      applyNow();
+      applyNow(true);
       wave.style.opacity = '0';
-      setTimeout(() => wave.remove(), 260);
-    }, 340);
+      setTimeout(() => wave.remove(), 240);
+    }, 320);
   }
 
   function notify(msg) {
@@ -1323,6 +1400,10 @@
     'AI & Database': 'الذكاء الاصطناعي والملفات',
     'Appearance, Glass Opacity & Colors': 'المظهر وشفافية الزجاج والألوان',
     'Theme Palette': 'الثيمات والألوان',
+    'Theme Switch Animation': 'أنيميشن تغيير الوضع',
+    'Circle Ripple': 'الدائرة الكبيرة',
+    'Ocean Wave': 'موجة من فوق',
+    'Side Sweep': 'موجة جانبية',
     'Accent Highlight Color': 'لون التمييز الأساسي',
     'Card Opacity (Transparency Control)': 'شفافية البطاقات',
     'Backdrop Blur Strength': 'قوة التمويه الزجاجي',
@@ -3083,7 +3164,7 @@
   function initPWA() {
     if ('caches' in window) {
       caches.keys().then((keys) => {
-        keys.forEach((k) => { if (k !== 'dr221-pwa-v27') caches.delete(k).catch(() => {}); });
+        keys.forEach((k) => { if (k !== 'dr221-pwa-v28') caches.delete(k).catch(() => {}); });
       }).catch(() => {});
     }
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
@@ -4826,6 +4907,15 @@
                     <small class="muted" style="font-size:.63rem">${esc(t.desc)}</small>
                   </button>
                 `).join('')}
+              </div>
+            </div>
+
+            <div class="setting-row" style="margin-top:16px">
+              <div><strong>Theme Switch Animation</strong><p>Pick Circle Ripple, Ocean Wave (top to bottom), or Side Sweep.</p></div>
+              <div class="theme-anim-group" id="themeAnimGroup">
+                <button type="button" class="theme-anim-btn ${(p.themeAnim || 'circle') === 'circle' ? 'active' : ''}" data-theme-anim="circle">Circle Ripple</button>
+                <button type="button" class="theme-anim-btn ${p.themeAnim === 'wave' ? 'active' : ''}" data-theme-anim="wave">Ocean Wave</button>
+                <button type="button" class="theme-anim-btn ${p.themeAnim === 'side' ? 'active' : ''}" data-theme-anim="side">Side Sweep</button>
               </div>
             </div>
 
@@ -6760,6 +6850,20 @@
         $$('[data-theme-pick]').forEach((b) => b.classList.toggle('selected', b === btn));
         notify(`Theme changed to ${tObj.name}`);
       });
+    }));
+
+    const updateThemeAnimGlide = setupHorizontalGlide($('#themeAnimGroup'), '[data-theme-anim]');
+    $$('[data-theme-anim]').forEach((btn) => btn.addEventListener('click', () => {
+      const style = btn.dataset.themeAnim || 'circle';
+      updatePreferences({ themeAnim: style });
+      $$('[data-theme-anim]').forEach((b) => b.classList.toggle('active', b === btn));
+      updateThemeAnimGlide(true);
+      const labels = {
+        circle: isAr() ? 'الدائرة الكبيرة' : 'Circle Ripple',
+        wave: isAr() ? 'موجة من فوق لتحت' : 'Ocean Wave',
+        side: isAr() ? 'موجة جانبية' : 'Side Sweep'
+      };
+      notify(isAr() ? `تم اختيار أنيميشن: ${labels[style]}` : `Animation set to ${labels[style]}`);
     }));
 
     $$('[data-accent-c1]').forEach((btn) => btn.addEventListener('click', () => {
