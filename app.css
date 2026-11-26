@@ -81,31 +81,29 @@
 }
 
 [data-theme="frosted-light"] {
-  --bg: #cfd7e3;
-  --bg-2: #c1ccdc;
-  --surface: rgba(255, 255, 255, var(--glass-alpha));
-  --surface-2: rgba(255, 255, 255, 0.86);
-  --surface-3: rgba(255, 255, 255, 0.96);
-  --ink: #0c1629;
-  --muted: #3e506b;
-  --muted-2: #5b6e8a;
-  --line: rgba(15, 23, 42, 0.10);
+  --bg: #d0d4dc;
+  --bg-2: #c3c8d2;
+  --surface: rgba(232, 235, 240, var(--glass-alpha));
+  --surface-2: rgba(220, 224, 231, calc(var(--glass-alpha) * 0.96));
+  --surface-3: rgba(210, 215, 224, 0.96);
+  --ink: #111827;
+  --muted: #4b5563;
+  --muted-2: #6b7280;
+  --line: rgba(15, 23, 42, 0.11);
   --line-strong: rgba(15, 23, 42, 0.20);
-  --crystal-fill: linear-gradient(155deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.16) 46%, rgba(255, 255, 255, 0.44) 100%);
-  --crystal-border: rgba(255, 255, 255, 0.98);
-  --crystal-meniscus: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.24) 50%, rgba(255, 255, 255, 0) 100%);
+  --crystal-fill: linear-gradient(155deg, rgba(242, 244, 248, 0.78) 0%, rgba(226, 230, 238, 0.34) 46%, rgba(236, 239, 245, 0.56) 100%);
+  --crystal-border: rgba(255, 255, 255, 0.78);
+  --crystal-meniscus: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.18) 50%, rgba(255, 255, 255, 0) 100%);
   --crystal-shadow:
-    0 10px 24px rgba(15, 23, 42, 0.15),
-    0 2px 6px rgba(15, 23, 42, 0.08),
-    inset 0 2px 2px rgba(255, 255, 255, 1),
-    inset 0 -2px 4px rgba(37, 99, 235, 0.22),
-    inset 2px 0 4px rgba(56, 189, 248, 0.22),
-    inset -2px 0 4px rgba(139, 92, 246, 0.20);
-  --dock-bg: rgba(255, 255, 255, 0.62);
-  --dock-border: rgba(255, 255, 255, 0.95);
-  --glass-rim: inset 0 1.5px 0 rgba(255, 255, 255, 0.95);
-  --shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
-  --shadow-soft: 0 8px 20px rgba(15, 23, 42, 0.07);
+    0 8px 20px rgba(15, 23, 42, 0.12),
+    0 2px 5px rgba(15, 23, 42, 0.07),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.85),
+    inset 0 -1.5px 3px rgba(37, 99, 235, 0.16);
+  --dock-bg: rgba(228, 231, 237, var(--glass-alpha));
+  --dock-border: rgba(255, 255, 255, 0.70);
+  --glass-rim: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  --shadow: 0 16px 36px rgba(15, 23, 42, 0.11);
+  --shadow-soft: 0 6px 18px rgba(15, 23, 42, 0.06);
 }
 
 [data-theme="emerald"] {
@@ -206,9 +204,9 @@ button:focus-visible, a:focus-visible {
 
 /* Theme button subtle spin on tap */
 @keyframes themeIconSpin {
-  0% { transform: rotate(0deg) scale(0.8); }
-  60% { transform: rotate(195deg) scale(1.12); }
-  100% { transform: rotate(180deg) scale(1); }
+  0% { transform: rotate(-85deg) scale(0.76); opacity: 0.55; }
+  65% { transform: rotate(10deg) scale(1.1); opacity: 1; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
 }
 
 .theme-spin .icon {
@@ -250,9 +248,9 @@ body {
 
 [data-theme="frosted-light"] .ambient-backdrop {
   background:
-    radial-gradient(circle at 14% 12%, rgba(99, 132, 210, 0.22), transparent 44%),
-    radial-gradient(circle at 86% 18%, rgba(139, 118, 224, 0.18), transparent 44%),
-    linear-gradient(160deg, #d1dae6 0%, #c0cbdc 100%);
+    radial-gradient(circle at 14% 12%, rgba(148, 163, 184, 0.24), transparent 46%),
+    radial-gradient(circle at 86% 18%, rgba(100, 116, 139, 0.18), transparent 46%),
+    linear-gradient(160deg, #d3d7df 0%, #c4c9d3 100%);
 }
 
 [data-theme="oled-black"] .ambient-backdrop {
@@ -4820,7 +4818,7 @@ html[data-density="compact"] .page-content { padding-top: 14px; }
    MOBILE-FIRST FIXES (<= 820px) — 120Hz GPU, Clean Topbar, Aligned Schedule
    ========================================================================== */
 @media (max-width: 820px) {
-  /* 1. True 120Hz Smooth Scroll: disable blur on scrolling cards, keep live glass on fixed floating topbar & dock */
+  /* 1. Live Glass Controls on Mobile: cards, topbar & dock honor --glass-alpha & --glass-blur live! */
   .panel,
   .hero-card,
   .stat-card,
@@ -4832,47 +4830,28 @@ html[data-density="compact"] .page-content { padding-top: 14px; }
   .qa-thread-card,
   .qa-mini-stat,
   .ov-live-card,
-  .ov-shortcut-btn,
-  .material-file-card,
-  .schedule-card {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  [data-theme="oled-black"] .panel,
-  [data-theme="oled-black"] .ov-live-card,
-  [data-theme="oled-black"] .ov-shortcut-btn,
-  [data-theme="oled-black"] .qa-thread-card,
-  [data-theme="oled-black"] .qa-mini-stat {
-    background: rgba(18, 20, 27, 0.94);
-    border-color: rgba(255, 255, 255, 0.085);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.11);
-  }
-
-  [data-theme="frosted-light"] .panel,
-  [data-theme="frosted-light"] .ov-live-card,
-  [data-theme="frosted-light"] .ov-shortcut-btn,
-  [data-theme="frosted-light"] .qa-thread-card,
-  [data-theme="frosted-light"] .qa-mini-stat {
-    background: rgba(255, 255, 255, 0.92);
-    border-color: rgba(15, 23, 42, 0.10);
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  .ov-shortcut-btn {
+    background: var(--surface);
+    backdrop-filter: blur(var(--glass-blur)) saturate(165%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(165%);
   }
 
   [data-theme="oled-black"] .ambient-backdrop {
-    background: linear-gradient(180deg, #060a14 0%, #000000 32%, #000000 100%) !important;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(37, 99, 235, 0.14), transparent 46%),
+      linear-gradient(180deg, #070b14 0%, #000000 36%, #000000 100%) !important;
   }
 
   .topbar-bar {
-    backdrop-filter: blur(14px) saturate(165%) !important;
-    -webkit-backdrop-filter: blur(14px) saturate(165%) !important;
+    backdrop-filter: blur(var(--glass-blur)) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%) !important;
     gap: 8px;
     padding: 6px 10px;
   }
 
   .mobile-dock {
-    backdrop-filter: blur(16px) saturate(175%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(175%) !important;
+    backdrop-filter: blur(var(--glass-blur)) saturate(175%) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(175%) !important;
   }
 
   /* 2. Clean Mobile Topbar: symmetrical avatar circle & remove extra logout icon from topbar (kept in sidebar) */
@@ -5367,10 +5346,6 @@ html, body, .app-shell, .main-shell, .page-content, .page-view {
   transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
-body.drawer-open {
-  overflow: hidden !important;
-}
-
 body.drawer-open .mobile-dock {
   opacity: 0 !important;
   pointer-events: none !important;
@@ -5380,7 +5355,10 @@ body.drawer-open .mobile-dock {
 @media (max-width: 820px) {
   .drawer-overlay.open {
     z-index: 90 !important;
-    background: rgba(0, 0, 0, 0.62);
+    background: rgba(0, 0, 0, 0.54);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    touch-action: none;
   }
 
   .sidebar {
@@ -5389,12 +5367,15 @@ body.drawer-open .mobile-dock {
     top: 0 !important;
     left: 0 !important;
     bottom: 0 !important;
-    height: 100vh !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
+    height: auto !important;
+    max-height: none !important;
     display: flex !important;
     flex-direction: column !important;
-    padding: 14px 12px calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 14px 12px calc(18px + env(safe-area-inset-bottom, 0px)) !important;
+    background: var(--surface) !important;
+    backdrop-filter: blur(max(22px, var(--glass-blur))) saturate(185%) !important;
+    -webkit-backdrop-filter: blur(max(22px, var(--glass-blur))) saturate(185%) !important;
+    overscroll-behavior: contain;
   }
 
   .sidebar-brand {
@@ -5455,5 +5436,92 @@ body.drawer-open .mobile-dock {
   /* Clean bottom padding without AI FAB clutter */
   .page-content {
     padding-bottom: 98px !important;
+  }
+}
+
+/* ==========================================================================
+   v27 4-Tab Dock Icon Motion, Frosted Sidebar, Soft Grey Light Mode & Sliders
+   ========================================================================== */
+.crystal-slider-input {
+  touch-action: pan-x;
+}
+
+/* Smooth GPU-only icon motion for the 4 bottom dock tabs (Home stays normal!) */
+@keyframes dockIconSchedule {
+  0%   { transform: scale(1) rotate(0deg); }
+  28%  { transform: scale(1.22) rotate(-13deg) translateY(-2px); }
+  58%  { transform: scale(1.12) rotate(9deg) translateY(-1px); }
+  82%  { transform: scale(0.96) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg) translateY(-1px); }
+}
+
+@keyframes dockIconDatabase {
+  0%   { transform: translateY(0) scale(1); }
+  32%  { transform: translateY(-5px) scale(1.2); }
+  62%  { transform: translateY(1.5px) scale(0.93); }
+  84%  { transform: translateY(-1.5px) scale(1.05); }
+  100% { transform: translateY(-1px) scale(1); }
+}
+
+@keyframes dockIconQA {
+  0%   { transform: scale(1) rotate(0deg); }
+  24%  { transform: scale(1.24) rotate(-14deg); }
+  50%  { transform: scale(1.18) rotate(12deg); }
+  74%  { transform: scale(1.06) rotate(-6deg); }
+  100% { transform: scale(1) rotate(0deg) translateY(-1px); }
+}
+
+@keyframes dockIconChat {
+  0%   { transform: scale(0.86) rotate(0deg); }
+  35%  { transform: scale(1.25) rotate(-11deg) translateY(-2.5px); }
+  65%  { transform: scale(0.94) rotate(6deg); }
+  85%  { transform: scale(1.06) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg) translateY(-1px); }
+}
+
+.mobile-dock a[data-nav-page="schedule"].icon-motion .icon {
+  animation: dockIconSchedule 0.44s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mobile-dock a[data-nav-page="materials"].icon-motion .icon {
+  animation: dockIconDatabase 0.44s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mobile-dock a[data-nav-page="qa"].icon-motion .icon {
+  animation: dockIconQA 0.46s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mobile-dock a[data-nav-page="chat"].icon-motion .icon {
+  animation: dockIconChat 0.44s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Smooth fast theme cross-fade without GPU ViewTransition freeze */
+html.theme-switching body,
+html.theme-switching .panel,
+html.theme-switching .topbar-bar,
+html.theme-switching .mobile-dock,
+html.theme-switching .sidebar {
+  transition: background-color 0.22s ease, border-color 0.22s ease, color 0.18s ease !important;
+}
+
+/* Strong readable frosted sidebar tint per theme (never sharp text bleed-through!) */
+@media (max-width: 820px) {
+  [data-theme="frosted-light"] .sidebar {
+    background: rgba(226, 230, 237, 0.88) !important;
+    border-right: 1px solid rgba(15, 23, 42, 0.14) !important;
+  }
+
+  [data-theme="oled-black"] .sidebar {
+    background: rgba(14, 16, 22, 0.90) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+  }
+
+  [data-theme="emerald"] .sidebar {
+    background: rgba(10, 28, 23, 0.90) !important;
+    border-right: 1px solid rgba(167, 243, 208, 0.14) !important;
+  }
+
+  .sidebar-nav {
+    overscroll-behavior: contain;
   }
 }

@@ -1020,7 +1020,7 @@
     const root = document.documentElement;
     const themeObj = themeCatalog.find((t) => t.id === p.theme) || themeCatalog[0];
     root.dataset.theme = themeObj.id;
-    const _mc = $('meta[name="theme-color"]'); if (_mc) _mc.setAttribute('content', themeObj.dark ? '#000000' : '#edf2f8');
+    const _mc = $('meta[name="theme-color"]'); if (_mc) _mc.setAttribute('content', themeObj.dark ? '#000000' : '#d0d4dc');
     root.dataset.motion = p.motion === false ? 'off' : 'on';
     root.dataset.density = p.density || 'comfortable';
 
@@ -1071,7 +1071,7 @@
   // ==========================================================================
   const themeBgColors = {
     'oled-black': '#000000',
-    'frosted-light': '#cfd7e3',
+    'frosted-light': '#d0d4dc',
     'emerald': '#081814'
   };
 
@@ -1110,12 +1110,18 @@
     };
 
     const motionOff = getPrefs().motion === false || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    if (motionOff) {
+    const isMobileViewport = window.innerWidth <= 820 || window.matchMedia?.('(pointer: coarse)')?.matches;
+    if (motionOff || isMobileViewport) {
+      document.documentElement.classList.add('theme-switching');
       applyNow();
+      clearTimeout(window.__themeSwitchTimer);
+      window.__themeSwitchTimer = setTimeout(() => {
+        document.documentElement.classList.remove('theme-switching');
+      }, 240);
       return;
     }
 
-    // Native View Transitions API (True Telegram expanding circular clip-path over live DOM!)
+    // Desktop-only fast View Transition (skipped on mobile to prevent Chrome GPU freeze!)
     if (typeof document.startViewTransition === 'function') {
       try {
         const vt = document.startViewTransition(() => {
@@ -1130,7 +1136,7 @@
               ]
             },
             {
-              duration: 560,
+              duration: 340,
               easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
               pseudoElement: '::view-transition-new(root)'
             }
@@ -2152,7 +2158,15 @@
     }
   };
 
-  let remoteMaterials = [];
+  const REMOTE_MATS_CACHE_KEY = 'dr221_remote_mats_cache_v1';
+  let remoteMaterials = (() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem(REMOTE_MATS_CACHE_KEY) || '[]');
+      return Array.isArray(cached) ? cached : [];
+    } catch (_) {
+      return [];
+    }
+  })();
   let cloudConnected = false;
 
   function formatBytes(bytes) {
@@ -2252,11 +2266,16 @@
     try {
       const { data, error } = await SupaCloud.select('materials', 'select=*&order=created_at.desc');
       if (!error && Array.isArray(data)) {
+        const prevSig = remoteMaterials.map((x) => `${x.id}:${x.name}`).join('|');
         remoteMaterials = data.map(mapSupabaseMaterialRow);
+        try { localStorage.setItem(REMOTE_MATS_CACHE_KEY, JSON.stringify(remoteMaterials)); } catch (_) {}
         cloudConnected = true;
+        const nextSig = remoteMaterials.map((x) => `${x.id}:${x.name}`).join('|');
         updateLiveMaterialCounters();
-        if ($('#materialLibraryRoot')) renderMaterials();
-        if ($('#dashboardScheduleList')) renderDashboard();
+        if (nextSig !== prevSig) {
+          if ($('#materialLibraryRoot')) renderMaterials();
+          if ($('#dashboardScheduleList')) renderDashboard();
+        }
         if ($('#courseGrid')) renderCourses($('#courseSearch')?.value || '');
         if ($('#adminPendingFilesList')) renderAdminQueues();
     if (window.__dr221RefreshSeminars) window.__dr221RefreshSeminars();
@@ -2475,7 +2494,7 @@
       if (remoteItem.storagePath) await SupaCloud.removeFile('materials', remoteItem.storagePath);
       const res = await SupaCloud.deleteEq('materials', 'id', id);
       if (res.ok) {
-        remoteMaterials = remoteMaterials.filter((m) => m.id !== id);
+        remoteMaterials = remoteMaterials.filter((m) => m.id !== id); try { localStorage.setItem(REMOTE_MATS_CACHE_KEY, JSON.stringify(remoteMaterials)); } catch (_) {}
         updateLiveMaterialCounters();
         notify(isAr() ? 'تم حذف الملف من Supabase.' : 'File deleted from Supabase Cloud.');
         return true;
@@ -3064,7 +3083,7 @@
   function initPWA() {
     if ('caches' in window) {
       caches.keys().then((keys) => {
-        keys.forEach((k) => { if (k !== 'dr221-pwa-v26') caches.delete(k).catch(() => {}); });
+        keys.forEach((k) => { if (k !== 'dr221-pwa-v27') caches.delete(k).catch(() => {}); });
       }).catch(() => {});
     }
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
@@ -4821,15 +4840,15 @@
             </div>
 
             <div class="setting-row">
-              <div><strong>Card Opacity (Transparency Control)</strong><p>Adjust panel frosting opacity (${Math.round((p.glassAlpha ?? 0.85) * 100)}%).</p></div>
+              <div><strong>Card Opacity (Transparency Control)</strong><p>Adjust panel frosting opacity (<span id="glassAlphaDesc">${Math.round((p.glassAlpha ?? 0.85) * 100)}%</span>).</p></div>
               <div class="range-row" style="width:220px">
-                <input type="range" id="glassAlphaRange" min="0.45" max="0.98" step="0.03" value="${p.glassAlpha ?? 0.85}">
+                <input type="range" id="glassAlphaRange" min="0.25" max="0.98" step="0.02" value="${p.glassAlpha ?? 0.85}">
                 <span class="range-value" id="glassAlphaVal">${Math.round((p.glassAlpha ?? 0.85) * 100)}%</span>
               </div>
             </div>
 
             <div class="setting-row">
-              <div><strong>Backdrop Blur Strength</strong><p>Adjust frosted glass blur (${p.glassBlur ?? 18}px).</p></div>
+              <div><strong>Backdrop Blur Strength</strong><p>Adjust frosted glass blur (<span id="glassBlurDesc">${p.glassBlur ?? 18}px</span>).</p></div>
               <div class="range-row" style="width:220px">
                 <input type="range" id="glassBlurRange" min="0" max="36" step="2" value="${p.glassBlur ?? 18}">
                 <span class="range-value" id="glassBlurVal">${p.glassBlur ?? 18}px</span>
@@ -5634,7 +5653,7 @@
     libPromise: null,
     queue: [],
     activeCount: 0,
-    maxConcurrent: 2,
+    maxConcurrent: (typeof window !== 'undefined' && window.innerWidth <= 820) ? 1 : 2,
 
     openDB() {
       return new Promise((resolve, reject) => {
@@ -5775,7 +5794,7 @@
         }
         if (this.queue.some((q) => q.id === item.id)) return;
         this.queue.push(item);
-        this.pump();
+        setTimeout(() => this.pump(), 140);
       });
     },
 
@@ -6756,12 +6775,16 @@
     });
 
     $('#glassAlphaRange')?.addEventListener('input', (e) => {
-      $('#glassAlphaVal').textContent = `${Math.round(Number(e.target.value) * 100)}%`;
+      const pct = `${Math.round(Number(e.target.value) * 100)}%`;
+      $('#glassAlphaVal').textContent = pct;
+      if ($('#glassAlphaDesc')) $('#glassAlphaDesc').textContent = pct;
       updatePreferences({ glassAlpha: Number(e.target.value) });
     });
 
     $('#glassBlurRange')?.addEventListener('input', (e) => {
-      $('#glassBlurVal').textContent = `${e.target.value}px`;
+      const px = `${e.target.value}px`;
+      $('#glassBlurVal').textContent = px;
+      if ($('#glassBlurDesc')) $('#glassBlurDesc').textContent = px;
       updatePreferences({ glassBlur: Number(e.target.value) });
     });
 
@@ -7213,6 +7236,16 @@
 
     const sameRoute = targetPage === page && targetUrl.search === window.location.search;
     if (sameRoute) {
+      if (targetPage !== 'dashboard') {
+        const dockItem = $(`.mobile-dock a[data-nav-page="${targetPage}"]`);
+        if (dockItem) {
+          dockItem.classList.remove('icon-motion');
+          void dockItem.offsetWidth;
+          dockItem.classList.add('icon-motion');
+          clearTimeout(dockItem.__motionTimer);
+          dockItem.__motionTimer = setTimeout(() => dockItem.classList.remove('icon-motion'), 480);
+        }
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return true;
     }
@@ -7235,7 +7268,17 @@
 
     // Update active states & smoothly glide mobile dock + sidebar pills ONCE (zero reload!)
     $$('.sidebar-nav .nav-link').forEach((el) => el.classList.toggle('active', el.dataset.navPage === targetPage));
-    $$('.mobile-dock a').forEach((el) => el.classList.toggle('active', el.dataset.navPage === targetPage));
+    $$('.mobile-dock a').forEach((el) => {
+      const isTarget = el.dataset.navPage === targetPage;
+      el.classList.toggle('active', isTarget);
+      if (isTarget && targetPage !== 'dashboard') {
+        el.classList.remove('icon-motion');
+        void el.offsetWidth;
+        el.classList.add('icon-motion');
+        clearTimeout(el.__motionTimer);
+        el.__motionTimer = setTimeout(() => el.classList.remove('icon-motion'), 480);
+      }
+    });
     if (typeof window.__syncMobileDockLens === 'function') window.__syncMobileDockLens(true);
     if (typeof window.__syncSidebarLens === 'function') window.__syncSidebarLens(true);
 

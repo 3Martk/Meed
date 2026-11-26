@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dr221-pwa-v26';
+const CACHE_NAME = 'dr221-pwa-v27';
 const STATIC_ASSETS = [
   './',
   './dashboard.html',
@@ -12,8 +12,8 @@ const STATIC_ASSETS = [
   './settings.html',
   './admin.html',
   './login.html',
-  './app.css?v=20261125-26',
-  './app.js?v=20261125-26',
+  './app.css?v=20261126-27',
+  './app.js?v=20261126-27',
   './manifest.json',
   './assets/icon.svg'
 ];
