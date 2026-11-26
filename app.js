@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const page = document.body.dataset.page || 'dashboard';
+  let page = document.body.dataset.page || 'dashboard';
   const ACCOUNT_KEY = 'dr221_accounts_v4';
   const SESSION_KEY = 'dr221_session_v4';
   const PREF_KEY = 'dr221_prefs_v6';
@@ -1717,11 +1717,10 @@
     }
   }
 
-  // Left Sidebar Optical Glass Lens with Smooth Glide & Subtle Magnification
+  // Left Sidebar Optical Glass Lens (Zero Reload Double-Replay)
   function initSidebarGlide() {
     const nav = $('.sidebar-nav');
-    const activeLink = $('.nav-link.active', nav);
-    if (!nav || !activeLink) return;
+    if (!nav) return;
 
     let pill = $('.nav-glide-pill', nav);
     if (!pill) {
@@ -1732,60 +1731,42 @@
 
     let hoveredLink = null;
     const syncPos = (animate = false) => {
+      const activeLink = $('.nav-link.active', nav);
       const target = hoveredLink || activeLink;
+      if (!target) {
+        pill.style.opacity = '0';
+        return;
+      }
       positionLensExact(pill, target, animate ? 'y' : 'none');
     };
 
-    let prevPos = null;
-    try {
-      const raw = sessionStorage.getItem(NAV_GLIDE_KEY);
-      if (raw) prevPos = JSON.parse(raw);
-    } catch (_) {}
+    window.__syncSidebarLens = (animate = true) => {
+      hoveredLink = null;
+      syncPos(animate);
+    };
 
-    if (prevPos && typeof prevPos.top === 'number') {
-      pill.style.transition = 'none';
-      pill.style.width = `${activeLink.offsetWidth}px`;
-      pill.style.height = `${prevPos.height || activeLink.offsetHeight}px`;
-      pill.style.transform = `translate3d(${activeLink.offsetLeft}px, ${prevPos.top}px, 0) scale(1)`;
-      pill.style.opacity = '1';
-      void pill.offsetWidth;
-      pill.style.transition = '';
-      requestAnimationFrame(() => positionLensExact(pill, activeLink, 'y'));
-    } else {
-      requestAnimationFrame(() => syncPos(false));
-    }
+    requestAnimationFrame(() => syncPos(false));
 
     $$('.nav-link', nav).forEach((link) => {
       link.addEventListener('mouseenter', () => {
+        if (window.matchMedia('(hover: none)').matches) return;
         hoveredLink = link;
         positionLensExact(pill, link, 'y');
-      });
-      link.addEventListener('click', () => {
-        try {
-          sessionStorage.setItem(NAV_GLIDE_KEY, JSON.stringify({
-            top: link.offsetTop,
-            height: link.offsetHeight
-          }));
-        } catch (_) {}
       });
     });
 
     nav.addEventListener('mouseleave', () => {
       hoveredLink = null;
-      positionLensExact(pill, activeLink, 'y');
+      syncPos(true);
     });
 
     observeLayoutChanges(nav, () => syncPos(false));
   }
 
-
-  // Mobile Bottom Dock Gliding Refractive Glass Oval (with elastic stretch + optical zoom)
+  // Mobile Bottom Dock Smooth Capsule Glide (Native iOS/One UI feel — Zero Reload Flicker)
   function initMobileDockGlide() {
     const dock = $('.mobile-dock');
     if (!dock) return;
-    const links = $$('a', dock);
-    const activeLink = $('a.active', dock) || links[0];
-    if (!activeLink) return;
 
     let lens = $('.dock-crystal-lens', dock);
     if (!lens) {
@@ -1794,75 +1775,38 @@
       dock.appendChild(lens);
     }
 
-    const moveDockLens = (targetEl, stretch = false) => {
-      if (!targetEl) return;
+    const moveDockLens = (targetEl, animate = false) => {
+      if (!targetEl || targetEl.offsetWidth <= 0 || targetEl.offsetHeight <= 0) {
+        lens.style.opacity = '0';
+        return;
+      }
       const x = targetEl.offsetLeft;
       const y = targetEl.offsetTop;
       const w = targetEl.offsetWidth;
       const h = targetEl.offsetHeight;
-      if (w <= 0 || h <= 0) return;
 
+      if (!animate) {
+        lens.style.transition = 'none';
+      }
       lens.style.width = `${w}px`;
       lens.style.height = `${h}px`;
+      lens.style.transform = `translate3d(${x}px, ${y}px, 0)`;
       lens.style.opacity = '1';
-
-      if (stretch) {
-        lens.style.transform = `translate3d(${x}px, ${y}px, 0) scaleX(1.16) scaleY(0.91)`;
-        triggerLensSheen(lens);
-        clearTimeout(lens.__settle);
-        lens.__settle = setTimeout(() => {
-          lens.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1.04)`;
-        }, 190);
-      } else {
-        lens.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1.03)`;
+      if (!animate) {
+        void lens.offsetWidth;
+        lens.style.transition = '';
       }
     };
 
-    let prev = null;
-    try {
-      const raw = sessionStorage.getItem(DOCK_GLIDE_KEY);
-      if (raw) prev = JSON.parse(raw);
-    } catch (_) {}
+    window.__syncMobileDockLens = (animate = true) => {
+      const cur = $('a.active', dock);
+      moveDockLens(cur, animate);
+    };
 
-    if (prev && typeof prev.left === 'number' && activeLink.offsetWidth > 0) {
-      lens.style.transition = 'none';
-      lens.style.width = `${prev.width || activeLink.offsetWidth}px`;
-      lens.style.height = `${activeLink.offsetHeight}px`;
-      lens.style.transform = `translate3d(${prev.left}px, ${activeLink.offsetTop}px, 0) scale(1)`;
-      lens.style.opacity = '1';
-      void lens.offsetWidth;
-      lens.style.transition = '';
-      requestAnimationFrame(() => moveDockLens(activeLink, true));
-    } else {
-      requestAnimationFrame(() => moveDockLens(activeLink, false));
-    }
-
-    links.forEach((link) => {
-      link.addEventListener('click', (e) => {
-        const href = link.getAttribute('href');
-        if (!href) return;
-        const currentActive = $('a.active', dock);
-        try {
-          sessionStorage.setItem(DOCK_GLIDE_KEY, JSON.stringify({
-            left: (currentActive || link).offsetLeft,
-            width: (currentActive || link).offsetWidth
-          }));
-        } catch (_) {}
-
-        if (link === currentActive) return;
-        // Glide the crystal glass oval immediately on tap BEFORE navigating!
-        e.preventDefault();
-        links.forEach((l) => l.classList.toggle('active', l === link));
-        moveDockLens(link, true);
-        setTimeout(() => {
-          window.location.href = href;
-        }, 210);
-      });
-    });
+    requestAnimationFrame(() => moveDockLens($('a.active', dock), false));
 
     observeLayoutChanges(dock, () => {
-      const cur = $('a.active', dock) || activeLink;
-      moveDockLens(cur, false);
+      moveDockLens($('a.active', dock), false);
     });
   }
 
@@ -3012,14 +2956,14 @@
     },
 
     subscribeRealtime() {
-      // Lightweight smart sync: fast 8s check on Chat page, 30s on other pages, zero wasted DOM re-renders!
-      const intervalMs = page === 'chat' ? 7000 : page === 'materials' ? 12000 : 30000;
+      let tick = 0;
       setInterval(() => {
         if (document.hidden) return;
+        tick++;
         if (page === 'chat') this.pullChat();
-        else if (page === 'materials') syncRemoteMaterials();
-        else this.pullKV();
-      }, intervalMs);
+        else if (page === 'materials' && tick % 2 === 0) syncRemoteMaterials();
+        else if (tick % 4 === 0) this.pullKV();
+      }, 8000);
     }
   };
 
@@ -3118,8 +3062,13 @@
   // PWA Service Worker & Install App Prompt
   let deferredInstallPrompt = null;
   function initPWA() {
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        keys.forEach((k) => { if (k !== 'dr221-pwa-v26') caches.delete(k).catch(() => {}); });
+      }).catch(() => {});
+    }
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js').then((reg) => { try { reg.update(); } catch (_) {} }).catch(() => {});
     }
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -3508,7 +3457,8 @@
   }
 
   function navLink(href, label, iconName, active, badge = '') {
-    return `<a class="nav-link ${active ? 'active' : ''}" href="${href}">${icon(iconName)}<span>${label}</span>${badge ? `<span class="nav-badge">${badge}</span>` : ''}</a>`;
+    const pg = String(href || '').replace(/\.html.*$/i, '');
+    return `<a class="nav-link ${active ? 'active' : ''}" href="${href}" data-nav-page="${pg}">${icon(iconName)}<span>${label}</span>${badge ? `<span class="nav-badge">${badge}</span>` : ''}</a>`;
   }
 
   function renderLoginPage() {
@@ -3808,39 +3758,6 @@
 
     document.body.innerHTML = `
       <div class="app-shell">
-        <aside class="sidebar" id="sidebar">
-          <a class="sidebar-brand" href="dashboard.html">
-            <span class="brand-mark">${icon('activity')}</span>
-            <div>${esc(site.name)}<small>${esc(site.tagline)}</small></div>
-          </a>
-          <nav class="sidebar-nav">
-            <div class="nav-label">Academic Workspace</div>
-            ${navLink('dashboard.html', 'Overview', 'grid', page === 'dashboard')}
-            ${navLink('schedule.html', 'Live Schedule', 'calendar', page === 'schedule', `W${live.week}`)}
-            ${navLink('courses.html', 'My Courses', 'book', page === 'courses', '12')}
-            ${navLink('materials.html', 'Study Database', 'database', page === 'materials', String(allMats.length))}
-            ${navLink('qa.html', 'Student Q&A', 'help', page === 'qa', String(qaCount))}
-            ${navLink('seminars.html', 'Seminars', 'video', page === 'seminars')}
-            ${navLink('chat.html', 'Student Chat', 'message', page === 'chat')}
-            <div class="nav-label">Personal</div>
-            ${navLink('profile.html', 'My Profile', 'user', page === 'profile')}
-            ${navLink('settings.html', 'Settings', 'settings', page === 'settings')}
-            ${adminUser ? navLink('admin.html', 'Admin Console', 'shield', page === 'admin', pendingCount ? String(pendingCount) : '') : ''}
-          </nav>
-          <div class="sidebar-spacer"></div>
-          <div class="sidebar-user-box">
-            <a class="sidebar-user-link" href="profile.html">
-              ${avatarMarkup(current)}
-              <div style="min-width:0">
-                <strong>${esc(current?.name || 'Student')} ${flairHtml(current, false)}</strong>
-                <small>${adminUser ? 'Leader 👑' : esc(current?.group || 'Group 221 A')}</small>
-              </div>
-            </a>
-            <button class="btn btn-icon btn-ghost" id="sidebarLogoutBtn" title="Switch Account / Sign Out">${icon('logout')}</button>
-          </div>
-        </aside>
-
-        <div class="drawer-overlay" id="drawerOverlay"></div>
 
         <div class="main-shell">
           <header class="topbar">
@@ -3848,7 +3765,7 @@
               <button class="btn btn-icon btn-ghost mobile-menu" id="mobileMenu" aria-label="Menu">${icon('menu')}</button>
               <div class="topbar-title">
                 <span>${esc(site.name)} · ${adminUser ? 'Leader' : 'Student'}</span>
-                <strong>${pageTitle}</strong>
+                <strong id="topbarPageTitle">${pageTitle}</strong>
               </div>
 
               <!-- Smart Live Status Pills Strip -->
@@ -3892,17 +3809,51 @@
             </div>
             <span class="mobile-live-strip-week">W${live.week} · ${live.todayDone}/${live.todayTotal}</span>
           </a>
-          <main class="page-content"><div id="broadcastSlot"></div>${content}</main>
+          <main class="page-content" id="mainPageContent"><div id="broadcastSlot"></div>${content}</main>
         </div>
       </div>
 
       <nav class="mobile-dock" aria-label="Quick navigation">
-        <a href="dashboard.html" class="${page === 'dashboard' ? 'active' : ''}">${icon('grid')}<span>Home</span></a>
-        <a href="schedule.html" class="${page === 'schedule' ? 'active' : ''}">${icon('calendar')}<span>Schedule</span></a>
-        <a href="materials.html" class="${page === 'materials' ? 'active' : ''}">${icon('database')}<span>Database</span></a>
-        <a href="qa.html" class="${page === 'qa' ? 'active' : ''}">${icon('help')}<span>Q&amp;A</span></a>
-        <a href="chat.html" class="${page === 'chat' ? 'active' : ''}">${icon('message')}<span>Chat</span></a>
+        <a href="dashboard.html" data-nav-page="dashboard" class="${page === 'dashboard' ? 'active' : ''}">${icon('grid')}<span>Home</span></a>
+        <a href="schedule.html" data-nav-page="schedule" class="${page === 'schedule' ? 'active' : ''}">${icon('calendar')}<span>Schedule</span></a>
+        <a href="materials.html" data-nav-page="materials" class="${page === 'materials' ? 'active' : ''}">${icon('database')}<span>Database</span></a>
+        <a href="qa.html" data-nav-page="qa" class="${page === 'qa' ? 'active' : ''}">${icon('help')}<span>Q&amp;A</span></a>
+        <a href="chat.html" data-nav-page="chat" class="${page === 'chat' ? 'active' : ''}">${icon('message')}<span>Chat</span></a>
       </nav>
+
+        <aside class="sidebar" id="sidebar">
+          <a class="sidebar-brand" href="dashboard.html">
+            <span class="brand-mark">${icon('activity')}</span>
+            <div>${esc(site.name)}<small>${esc(site.tagline)}</small></div>
+          </a>
+          <nav class="sidebar-nav">
+            <div class="nav-label">Academic Workspace</div>
+            ${navLink('dashboard.html', 'Overview', 'grid', page === 'dashboard')}
+            ${navLink('schedule.html', 'Live Schedule', 'calendar', page === 'schedule', `W${live.week}`)}
+            ${navLink('courses.html', 'My Courses', 'book', page === 'courses', '12')}
+            ${navLink('materials.html', 'Study Database', 'database', page === 'materials', String(allMats.length))}
+            ${navLink('qa.html', 'Student Q&A', 'help', page === 'qa', String(qaCount))}
+            ${navLink('seminars.html', 'Seminars', 'video', page === 'seminars')}
+            ${navLink('chat.html', 'Student Chat', 'message', page === 'chat')}
+            <div class="nav-label">Personal</div>
+            ${navLink('profile.html', 'My Profile', 'user', page === 'profile')}
+            ${navLink('settings.html', 'Settings', 'settings', page === 'settings')}
+            ${adminUser ? navLink('admin.html', 'Admin Console', 'shield', page === 'admin', pendingCount ? String(pendingCount) : '') : ''}
+          </nav>
+          <div class="sidebar-spacer"></div>
+          <div class="sidebar-user-box">
+            <a class="sidebar-user-link" href="profile.html">
+              ${avatarMarkup(current)}
+              <div style="min-width:0">
+                <strong>${esc(current?.name || 'Student')} ${flairHtml(current, false)}</strong>
+                <small>${adminUser ? 'Leader 👑' : esc(current?.group || 'Group 221 A')}</small>
+              </div>
+            </a>
+            <button class="btn btn-icon btn-ghost" id="sidebarLogoutBtn" title="Switch Account / Sign Out">${icon('logout')}</button>
+          </div>
+        </aside>
+
+        <div class="drawer-overlay" id="drawerOverlay"></div>
 
       <div class="modal-backdrop" id="filePreviewModal">
         <div class="modal-box">
@@ -3922,28 +3873,7 @@
         </div>
       </div>
 
-      <button class="ai-fab" id="aiFab" aria-label="Dr. 221 AI">${icon('spark')}</button>
-      <aside class="ai-drawer" id="aiDrawer">
-        <div class="ai-head">
-          <div><strong>Dr. 221 AI Copilot</strong><small class="muted">Bilingual Medical & Schedule Assistant</small></div>
-          <button class="btn btn-icon btn-ghost" id="aiClose">${icon('close')}</button>
-        </div>
-        <div class="ai-messages" id="aiMessages">
-          <div class="ai-message">${isAr()
-            ? `أهلاً د. ${esc(current?.name?.split(' ')[0] || 'محمد')}! اسألني بالعربية أو الإنجليزية عن أي مادة طبية (Anatomy، Physiology، Biochemistry، Histology، Microbiology...)، أو عن جدول أي يوم وأسماء الدكاترة، أو اطلب سؤال اختبار MCQ.`
-            : `Hello ${esc(current?.name?.split(' ')[0] || 'Doctor')}! Ask me anything in English or Arabic — medical concepts (Anatomy, Physiology, Biochemistry, Histology, Immunology, Surgery), live schedules for any day, or clinical quiz questions.`}</div>
-        </div>
-        <div class="ai-suggestions">
-          <button class="ai-suggestion" data-ai-prompt="What is my next class?">Next class</button>
-          <button class="ai-suggestion" data-ai-prompt="Quiz me on medical topics">Quiz me (MCQ)</button>
-          <button class="ai-suggestion" data-ai-prompt="Explain cardiac cycle & Frank-Starling">Cardiac cycle</button>
-          <button class="ai-suggestion" data-ai-prompt="اشرح الـ Cranial Nerves باختصار">شرح الأعصاب</button>
-        </div>
-        <form class="ai-form" id="aiForm">
-          <input class="input" id="aiInput" placeholder="Ask any medical or schedule question..." required>
-          <button class="btn btn-primary btn-icon" type="submit">${icon('arrow')}</button>
-        </form>
-      </aside>
+
 
       <div class="toast" id="toast" role="status"></div>
     `;
@@ -4476,7 +4406,7 @@
                   </div>
                   <div style="min-width:0">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:5px">
-                      <div style="display:flex;align-items:center;gap:7px">
+                      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;max-width:100%">
                         ${smallAvatarHtml(a.author, a.author)}
                         <strong style="font-size:.76rem">${esc(a.author)} ${flairForUsername(a.author)}</strong>
                         <small class="muted" style="font-size:.64rem">${esc(a.createdAt || '')}</small>
@@ -5282,9 +5212,10 @@
       recentEl.innerHTML = recent.length
         ? recent.map((m) => {
             const isImg = isImageMaterial(m);
+            const pdfAttr = (!isImg && isPdfMaterial(m)) ? ` data-pdf-thumb="${esc(m.id)}"` : '';
             return `
               <div class="ov-recent-file-row" data-ov-open="${esc(m.id)}">
-                <div class="ov-recent-thumb">
+                <div class="ov-recent-thumb"${pdfAttr}>
                   ${isImg && m.url ? `<img src="${esc(m.url)}" alt="">` : icon('file')}
                 </div>
                 <div style="min-width:0;flex:1">
@@ -5298,6 +5229,7 @@
         : `<div class="empty">No files uploaded yet.</div>`;
 
       $$('[data-ov-open]', recentEl).forEach((row) => row.addEventListener('click', () => openMaterialPreview(row.dataset.ovOpen)));
+      hydrateLocalThumbnails(recentEl);
     }
     renderDailyRecaps();
 
@@ -5694,6 +5626,186 @@
     return { cls: 'ext-doc', ic: 'file' };
   }
 
+  // Automatic PDF First-Page Cover Thumbnail Engine (Cached in IndexedDB for 0ms repeat load)
+  const PdfThumbEngine = {
+    dbName: 'dr221_pdf_thumbs_v1',
+    storeName: 'thumbs',
+    memCache: new Map(),
+    libPromise: null,
+    queue: [],
+    activeCount: 0,
+    maxConcurrent: 2,
+
+    openDB() {
+      return new Promise((resolve, reject) => {
+        if (!('indexedDB' in window)) return reject(new Error('No IDB'));
+        const req = indexedDB.open(this.dbName, 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(this.storeName)) {
+            db.createObjectStore(this.storeName, { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    },
+
+    async getCached(id) {
+      if (this.memCache.has(id)) return this.memCache.get(id);
+      try {
+        const db = await this.openDB();
+        const dataUrl = await new Promise((resolve) => {
+          const tx = db.transaction(this.storeName, 'readonly');
+          const req = tx.objectStore(this.storeName).get(id);
+          req.onsuccess = () => { db.close(); resolve(req.result?.dataUrl || null); };
+          req.onerror = () => { db.close(); resolve(null); };
+        });
+        if (dataUrl) this.memCache.set(id, dataUrl);
+        return dataUrl;
+      } catch (_) {
+        return null;
+      }
+    },
+
+    async setCached(id, dataUrl) {
+      this.memCache.set(id, dataUrl);
+      try {
+        const db = await this.openDB();
+        await new Promise((resolve) => {
+          const tx = db.transaction(this.storeName, 'readwrite');
+          tx.objectStore(this.storeName).put({ id, dataUrl, ts: Date.now() });
+          tx.oncomplete = () => { db.close(); resolve(true); };
+          tx.onerror = () => { db.close(); resolve(false); };
+        });
+      } catch (_) {}
+    },
+
+    loadPdfJs() {
+      if (window.pdfjsLib) {
+        if (!window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+        return Promise.resolve(window.pdfjsLib);
+      }
+      if (this.libPromise) return this.libPromise;
+      this.libPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.async = true;
+        s.onload = () => {
+          if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            resolve(window.pdfjsLib);
+          } else {
+            reject(new Error('pdfjsLib unavailable'));
+          }
+        };
+        s.onerror = () => {
+          this.libPromise = null;
+          reject(new Error('Failed to load pdf.js'));
+        };
+        document.head.appendChild(s);
+      });
+      return this.libPromise;
+    },
+
+    async renderFirstPage(item) {
+      const pdfjs = await this.loadPdfJs();
+      let source = null;
+      if (item.url && /^https?:\/\//i.test(item.url)) {
+        source = { url: item.url, withCredentials: false };
+      } else {
+        const blob = await Dr221DB.getBlob(item.id);
+        if (!blob) return null;
+        source = { data: await blob.arrayBuffer() };
+      }
+      const loadingTask = pdfjs.getDocument(source);
+      const pdf = await loadingTask.promise;
+      const pageObj = await pdf.getPage(1);
+      const baseVp = pageObj.getViewport({ scale: 1 });
+      const targetWidth = 340;
+      const scale = Math.min(1.5, Math.max(0.25, targetWidth / (baseVp.width || 600)));
+      const viewport = pageObj.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      const ctx = canvas.getContext('2d', { alpha: false });
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await pageObj.render({ canvasContext: ctx, viewport }).promise;
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.76);
+      try { await pdf.destroy(); } catch (_) {}
+      return dataUrl;
+    },
+
+    applyThumbToElements(id, dataUrl) {
+      const safeId = (window.CSS && CSS.escape) ? CSS.escape(id) : id.replace(/["\\]/g, '\\$&');
+      $$(`[data-pdf-thumb="${safeId}"]`).forEach((host) => {
+        if (!host || host.dataset.thumbDone === '1') return;
+        host.dataset.thumbDone = '1';
+        let img = $('img.pdf-thumb-img', host);
+        if (!img) {
+          img = document.createElement('img');
+          img.className = 'pdf-thumb-img';
+          img.alt = '';
+          host.insertBefore(img, host.firstChild);
+        }
+        img.onload = () => {
+          img.classList.add('loaded');
+          const fallback = $('.file-ext-cover, svg', host);
+          if (fallback && (host.classList.contains('ov-recent-thumb') || host.classList.contains('material-icon'))) {
+            fallback.style.display = 'none';
+          }
+        };
+        img.src = dataUrl;
+      });
+    },
+
+    enqueue(item) {
+      if (!item || !item.id) return;
+      if (this.memCache.has(item.id)) {
+        this.applyThumbToElements(item.id, this.memCache.get(item.id));
+        return;
+      }
+      this.getCached(item.id).then((cached) => {
+        if (cached) {
+          this.applyThumbToElements(item.id, cached);
+          return;
+        }
+        if (this.queue.some((q) => q.id === item.id)) return;
+        this.queue.push(item);
+        this.pump();
+      });
+    },
+
+    pump() {
+      while (this.activeCount < this.maxConcurrent && this.queue.length) {
+        const item = this.queue.shift();
+        this.activeCount++;
+        this.renderFirstPage(item)
+          .then((dataUrl) => {
+            if (dataUrl) {
+              this.setCached(item.id, dataUrl);
+              this.applyThumbToElements(item.id, dataUrl);
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            this.activeCount--;
+            this.pump();
+          });
+      }
+    }
+  };
+
+  function isPdfMaterial(m) {
+    const ext = String(m?.type || '').toUpperCase();
+    const mime = String(m?.mimeType || '').toLowerCase();
+    const name = String(m?.name || '').toLowerCase();
+    return ext === 'PDF' || mime.includes('pdf') || name.endsWith('.pdf');
+  }
+
   async function hydrateLocalThumbnails(root = document) {
     const imgs = $$('img[data-blob-thumb]', root);
     for (const img of imgs) {
@@ -5704,6 +5816,19 @@
         const blob = await Dr221DB.getBlob(id);
         if (blob) img.src = URL.createObjectURL(blob);
       } catch (_) {}
+    }
+
+    const pdfHosts = $$('[data-pdf-thumb]', root);
+    if (pdfHosts.length) {
+      const all = getAllMaterials();
+      const seen = new Set();
+      pdfHosts.forEach((host) => {
+        const id = host.dataset.pdfThumb;
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+        const item = all.find((x) => x.id === id);
+        if (item) PdfThumbEngine.enqueue(item);
+      });
     }
   }
 
@@ -5732,12 +5857,12 @@
               ? `<img data-blob-thumb="${esc(m.id)}" alt="${esc(m.name)}">`
               : `<div class="file-ext-cover ${vis.cls}">${icon(vis.ic)}<span class="file-ext-badge">${esc(m.type || 'FILE')}</span></div>`);
 
+        const pdfAttr = (!thumbSrc && !isImg && isPdfMaterial(m)) ? ` data-pdf-thumb="${esc(m.id)}"` : '';
         return `
           <article class="material-file-card">
-            <div class="material-thumb" data-mat-preview="${esc(m.id)}">
+            <div class="material-thumb" data-mat-preview="${esc(m.id)}"${pdfAttr}>
               ${thumbInner}
               <span class="thumb-cat-pill">${esc(m.category || 'Lecture')}</span>
-              ${(adminUser || m.storageMode === 'local') ? `<button type="button" class="thumb-delete-fab" data-mat-delete="${esc(m.id)}" title="Delete">${icon('close')}</button>` : ''}
             </div>
             <div class="material-card-body">
               <strong title="${esc(m.name)}">${esc(m.name)}</strong>
@@ -5760,9 +5885,10 @@
       listEl.className = 'material-list';
       listEl.innerHTML = items.map((m) => {
         const isImg = isImageMaterial(m);
+        const pdfAttr = (!isImg && isPdfMaterial(m)) ? ` data-pdf-thumb="${esc(m.id)}"` : '';
         return `
           <div class="material-row">
-            <span class="material-icon" style="overflow:hidden;padding:0">
+            <span class="material-icon" style="overflow:hidden;padding:0;position:relative"${pdfAttr}>
               ${isImg && m.url ? `<img src="${esc(m.url)}" style="width:100%;height:100%;object-fit:cover" alt="">` : icon('file')}
             </span>
             <div style="min-width:0;flex:1">
@@ -5778,6 +5904,7 @@
           </div>
         `;
       }).join('');
+      hydrateLocalThumbnails(listEl);
     }
 
     $$('[data-mat-preview]', listEl).forEach((b) => b.addEventListener('click', () => openMaterialPreview(b.dataset.matPreview)));
@@ -6168,11 +6295,15 @@
       }
     });
 
-    document.addEventListener('click', (e) => {
+    if (window.__dr221MentionDocClick) {
+      document.removeEventListener('click', window.__dr221MentionDocClick);
+    }
+    window.__dr221MentionDocClick = (e) => {
       if (!e.target.closest('#mentionPopup') && !e.target.closest('#quickMentionBtn') && e.target !== chatInput) {
         closeMentionPopup();
       }
-    });
+    };
+    document.addEventListener('click', window.__dr221MentionDocClick);
 
     const renderAdminAuditList = () => {
       if (!adminUser || !$('#adminAuditList')) return;
@@ -6955,14 +7086,16 @@
   }
 
   function bindCommon() {
+    const setDrawerOpen = (open) => {
+      $('#sidebar')?.classList.toggle('open', open);
+      $('#drawerOverlay')?.classList.toggle('open', open);
+      document.body.classList.toggle('drawer-open', open);
+    };
+    window.__closeMobileDrawer = () => setDrawerOpen(false);
     $('#mobileMenu')?.addEventListener('click', () => {
-      $('#sidebar').classList.toggle('open');
-      $('#drawerOverlay').classList.toggle('open');
+      setDrawerOpen(!$('#sidebar')?.classList.contains('open'));
     });
-    $('#drawerOverlay')?.addEventListener('click', () => {
-      $('#sidebar').classList.remove('open');
-      $('#drawerOverlay').classList.remove('open');
-    });
+    $('#drawerOverlay')?.addEventListener('click', () => setDrawerOpen(false));
 
     $('#langQuickBtn')?.addEventListener('click', toggleSiteLanguage);
     $('#sidebarLogoutBtn')?.addEventListener('click', signOut);
@@ -6997,7 +7130,7 @@
     $('#globalSearchForm')?.addEventListener('submit', (e) => {
       e.preventDefault();
       const q = $('#globalSearch').value.trim();
-      if (q) window.location.href = `courses.html?q=${encodeURIComponent(q)}`;
+      if (q) navigateToPage(`courses.html?q=${encodeURIComponent(q)}`);
     });
 
     $('#aiFab')?.addEventListener('click', () => $('#aiDrawer').classList.toggle('open'));
@@ -7024,6 +7157,132 @@
   }
 
   // ==========================================================================
+  // Instant Zero-Reload SPA Navigation Engine (v25 Native App Feel)
+  // ==========================================================================
+  const SPA_PAGES = {
+    dashboard: { title: 'Overview', bind: () => renderDashboard() },
+    schedule: { title: 'Live Schedule', bind: () => bindSchedule() },
+    courses: { title: 'My Courses', bind: () => bindCourses() },
+    materials: { title: 'Study Database', bind: () => bindMaterials() },
+    qa: { title: 'Student Q&A', bind: () => bindQA() },
+    seminars: { title: 'Seminars', bind: () => bindSeminars() },
+    chat: { title: 'Student Chat', bind: () => bindChat() },
+    profile: { title: 'My Profile', bind: () => bindProfile() },
+    settings: { title: 'Settings', bind: () => bindSettings() },
+    admin: { title: 'Admin Console', bind: () => bindAdmin() }
+  };
+
+  function resolveSpaPage(href) {
+    if (!href) return null;
+    try {
+      const url = new URL(href, window.location.href);
+      if (url.origin !== window.location.origin) return null;
+      const file = (url.pathname.split('/').pop() || '').toLowerCase();
+      const name = file.replace(/\.html$/, '');
+      if (!SPA_PAGES[name]) return null;
+      return { name, url };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function bindCurrentPageView(fullLocale = false) {
+    const entry = SPA_PAGES[page] || SPA_PAGES.dashboard;
+    entry.bind();
+    enhanceCustomSelects();
+    enhanceCrystalSliders();
+    renderBroadcastBanner();
+    if (isAr()) localizeDom(fullLocale ? document.body : ($('#mainPageContent') || document.body));
+  }
+
+  function navigateToPage(href, push = true) {
+    const resolved = resolveSpaPage(href);
+    if (!resolved) {
+      window.location.href = href;
+      return false;
+    }
+    const targetPage = resolved.name;
+    const targetUrl = resolved.url;
+
+    // Close mobile drawers & modals immediately
+    $('#sidebar')?.classList.remove('open');
+    $('#drawerOverlay')?.classList.remove('open');
+    document.body.classList.remove('drawer-open');
+    $('#aiDrawer')?.classList.remove('open');
+    $$('.modal-backdrop.open').forEach((m) => m.classList.remove('open'));
+
+    const sameRoute = targetPage === page && targetUrl.search === window.location.search;
+    if (sameRoute) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return true;
+    }
+
+    page = targetPage;
+    document.body.dataset.page = targetPage;
+
+    if (push) {
+      try {
+        history.pushState({ page: targetPage }, '', targetUrl.pathname + targetUrl.search + targetUrl.hash);
+      } catch (_) {}
+    }
+
+    // Update titles
+    const site = getSiteConfig();
+    const rawTitle = SPA_PAGES[targetPage].title;
+    document.title = `${rawTitle} · ${site.name}`;
+    const topTitleEl = $('#topbarPageTitle');
+    if (topTitleEl) topTitleEl.textContent = isAr() ? translateTextValue(rawTitle) : rawTitle;
+
+    // Update active states & smoothly glide mobile dock + sidebar pills ONCE (zero reload!)
+    $$('.sidebar-nav .nav-link').forEach((el) => el.classList.toggle('active', el.dataset.navPage === targetPage));
+    $$('.mobile-dock a').forEach((el) => el.classList.toggle('active', el.dataset.navPage === targetPage));
+    if (typeof window.__syncMobileDockLens === 'function') window.__syncMobileDockLens(true);
+    if (typeof window.__syncSidebarLens === 'function') window.__syncSidebarLens(true);
+
+    // Reset material folder when entering Study Database without ?subject=
+    if (targetPage === 'materials' && !new URLSearchParams(targetUrl.search).get('subject')) {
+      activeMaterialSubject = 'all';
+    }
+
+    // Swap main view instantly with subtle native fade
+    const mainEl = $('#mainPageContent');
+    if (mainEl) {
+      mainEl.classList.remove('page-swap-in');
+      mainEl.innerHTML = `<div id="broadcastSlot"></div>${pageTemplate()}`;
+      void mainEl.offsetWidth;
+      mainEl.classList.add('page-swap-in');
+    }
+
+    window.scrollTo(0, 0);
+    bindCurrentPageView();
+
+    // Refresh live cloud data softly in background without blocking UI
+    if (targetPage === 'chat') HubSync.pullChat();
+    else if (targetPage === 'materials') syncRemoteMaterials();
+
+    return true;
+  }
+
+  function bindSpaNavigation() {
+    document.addEventListener('click', (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const anchor = e.target.closest('a[href]');
+      if (!anchor) return;
+      if (anchor.hasAttribute('download') || anchor.getAttribute('target') === '_blank') return;
+      const href = anchor.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) return;
+      const resolved = resolveSpaPage(href);
+      if (!resolved) return;
+      e.preventDefault();
+      navigateToPage(href, true);
+    });
+
+    window.addEventListener('popstate', () => {
+      navigateToPage(window.location.href, false);
+    });
+  }
+
+  // ==========================================================================
   // Boot Sequence
   // ==========================================================================
   applyPreferences();
@@ -7039,29 +7298,17 @@
 
   renderShell(pageTemplate());
   mountBackdrop();
-  enhanceCustomSelects();
-  enhanceCrystalSliders();
   initSidebarGlide();
   initMobileDockGlide();
   bindCommon();
+  bindSpaNavigation();
   initPWA();
-  renderBroadcastBanner();
   syncRemoteMaterials();
   HubSync.pull();
   HubSync.subscribeRealtime();
 
-  renderDashboard();
-  bindSchedule();
-  bindCourses();
-  bindMaterials();
-  bindQA();
-  bindSeminars();
-  bindChat();
-  bindProfile();
-  bindSettings();
-  bindAdmin();
+  bindCurrentPageView(true);
   if (isAr()) {
-    localizeDom();
     requestAnimationFrame(() => {
       window.dispatchEvent(new Event('resize'));
     });
